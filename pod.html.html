@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TMS Admin POD - Verifikasi Surat Jalan & OPEN GR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
+
+  <!-- Navbar -->
+  <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-4">
+    <div class="flex items-center gap-6">
+      <div>
+        <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
+        <p class="text-xs text-slate-400">Verifikasi Surat Jalan & Kontrol Status OPEN GR</p>
+      </div>
+      <div class="flex gap-2 text-xs font-semibold">
+        <a href="index.html" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+          + Input Order
+        </a>
+        <a href="pod.html" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-sm">
+          Verifikasi POD
+        </a>
+      </div>
+    </div>
+    <button onclick="fetchOrders()" id="refreshBtn"
+      class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-emerald-400 border border-slate-700 transition">
+      Refresh Data
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto p-6 space-y-6">
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div onclick="setFilter('ALL')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
+        <p class="text-xs font-semibold text-slate-500 uppercase">Total SPJ / SJ</p>
+        <p id="kpiTotal" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+      </div>
+      <div onclick="setFilter('BELUM KEMBALI')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-amber-400 transition">
+        <p class="text-xs font-semibold text-amber-600 uppercase">Belum Kembali</p>
+        <p id="kpiBelum" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+      </div>
+      <div onclick="setFilter('OPEN GR')" class="cursor-pointer bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm hover:border-red-500 transition">
+        <p class="text-xs font-bold text-red-700 uppercase">OPEN GR (Tertahan)</p>
+        <p id="kpiOpen" class="text-2xl font-bold text-red-700 mt-1">0</p>
+      </div>
+      <div onclick="setFilter('OK GR')" class="cursor-pointer bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-500 transition">
+        <p class="text-xs font-bold text-emerald-700 uppercase">OK GR (Siap Tagih)</p>
+        <p id="kpiOk" class="text-2xl font-bold text-emerald-700 mt-1">0</p>
+      </div>
+    </div>
+
+    <!-- Filter & Search -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between gap-4">
+      <div class="flex flex-wrap gap-2">
+        <button data-status="ALL" onclick="setFilter('ALL')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">Semua</button>
+        <button data-status="BELUM KEMBALI" onclick="setFilter('BELUM KEMBALI')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Belum Kembali</button>
+        <button data-status="OPEN GR" onclick="setFilter('OPEN GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OPEN GR</button>
+        <button data-status="OK GR" onclick="setFilter('OK GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OK GR</button>
+      </div>
+      <div class="w-full md:w-80">
+        <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Cari No. SPJ, SJ, Nopol, Customer..."
+          class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
+              <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
+              <th class="py-3 px-4">Customer & Rute</th>
+              <th class="py-3 px-4">Armada & Driver</th>
+              <th class="py-3 px-4">No. Surat Jalan</th>
+              <th class="py-3 px-4">Status GR & Keterangan</th>
+              <th class="py-3 px-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody" class="divide-y divide-slate-200 text-sm">
+            <tr>
+              <td colspan="6" class="py-8 text-center text-slate-400">Memuat data dari Google Sheets...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Verifikasi POD -->
+  <div id="podModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden">
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-sm">Verifikasi POD Surat Jalan</h3>
+          <p id="modalSubtitle" class="text-xs text-slate-400 font-mono">SPJ-XXXX</p>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+
+      <form id="podForm" class="p-5 space-y-4">
+        <input type="hidden" id="modal_row_number" />
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Surat Jalan *</label>
+          <input type="text" id="modal_sj_no" required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Status GR *</label>
+          <select id="modal_status_gr" onchange="toggleIssueField()" required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="OK GR">OK GR (Lengkap / Siap Tagih)</option>
+            <option value="OPEN GR">OPEN GR (Tertahan / Ada Kendala)</option>
+            <option value="BELUM KEMBALI">BELUM KEMBALI</option>
+          </select>
+        </div>
+
+        <div id="issueContainer" class="hidden bg-red-50 p-3 rounded-lg border border-red-200 space-y-2">
+          <label class="block text-xs font-bold text-red-700">Keterangan Kendala (OPEN GR) *</label>
+          <select id="quickIssueSelect" onchange="applyQuickIssue()"
+            class="w-full px-2.5 py-1.5 border border-red-300 rounded text-xs bg-white text-slate-700">
+            <option value="">-- Pilih Template Kendala (Opsional) --</option>
+            <option value="Kurang tanda tangan / stempel basah penerima">Kurang tanda tangan / stempel basah penerima</option>
+            <option value="Ada barang NG / Retur / Tukar Guling (Menunggu BA)">Ada barang NG / Retur / Tukar Guling (Menunggu BA)</option>
+            <option value="Selisih qty barang / klaim kerusakan">Selisih qty barang / klaim kerusakan</option>
+            <option value="SJ fisik masih dibawa driver">SJ fisik masih dibawa driver</option>
+          </select>
+          <textarea id="modal_keterangan_issue" rows="2" placeholder="Tulis detail kendala atau nomor part retur..."
+            class="w-full px-3 py-2 border border-red-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+        </div>
+
+        <div class="pt-3 border-t flex justify-end gap-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">
+            Batal
+          </button>
+          <button type="submit" id="savePodBtn" class="px-5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm">
+            Simpan Perubahan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // TEMPEL WEB APP URL APPS SCRIPT KAMU DI SINI:
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
+
+    let allOrders = [];
+    let currentFilter = "ALL";
+
+    document.addEventListener("DOMContentLoaded", fetchOrders);
+
+    async function fetchOrders() {
+      const btn = document.getElementById("refreshBtn");
+      btn.textContent = "Memuat...";
+      try {
+        const res = await fetch(APPS_SCRIPT_URL);
+        const json = await res.json();
+        if (json.status === "success") {
+          allOrders = json.orders || [];
+          document.getElementById("kpiTotal").textContent = json.summary?.total || 0;
+          document.getElementById("kpiBelum").textContent = json.summary?.belum_kembali || 0;
+          document.getElementById("kpiOpen").textContent = json.summary?.open_gr || 0;
+          document.getElementById("kpiOk").textContent = json.summary?.ok_gr || 0;
+          renderTable();
+        }
+      } catch (err) {
+        alert("Gagal memuat data: " + err.message);
+      } finally {
+        btn.textContent = "Refresh Data";
+      }
+    }
+
+    function setFilter(status) {
+      currentFilter = status;
+      document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.className = btn.dataset.status === status
+          ? "filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white"
+          : "filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200";
+      });
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("ordersTableBody");
+      const keyword = document.getElementById("searchInput").value.toLowerCase();
+
+      const filtered = allOrders.filter(item => {
+        const matchStatus = currentFilter === "ALL" || item.status_gr === currentFilter;
+        const matchSearch =
+          (item.no_spj || "").toLowerCase().includes(keyword) ||
+          (item.no_surat_jalan || "").toLowerCase().includes(keyword) ||
+          (item.nopol || "").toLowerCase().includes(keyword) ||
+          (item.customer || "").toLowerCase().includes(keyword) ||
+          (item.nama_driver || "").toLowerCase().includes(keyword);
+        return matchStatus && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Tidak ada data yang sesuai filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        let badgeClass = "bg-amber-100 text-amber-800 border-amber-200";
+        if (item.status_gr === "OPEN GR") badgeClass = "bg-red-100 text-red-800 border-red-200";
+        if (item.status_gr === "OK GR") badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4">
+              <div class="font-mono font-bold text-xs text-slate-800">${item.no_spj}</div>
+              <div class="text-xs text-slate-500">${item.tgl_muat}</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-semibold text-slate-800 text-xs">${item.customer}</div>
+              <div class="text-xs text-slate-500">${item.asal} &rarr; ${item.tujuan}</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-bold text-xs text-slate-800">${item.nopol} <span class="font-normal text-slate-500">(${item.jenis_armada})</span></div>
+              <div class="text-xs text-slate-500">${item.nama_driver}</div>
+            </td>
+            <td class="py-3 px-4 font-mono text-xs font-semibold text-slate-700">${item.no_surat_jalan}</td>
+            <td class="py-3 px-4">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">
+                ${item.status_gr}
+              </span>
+              ${item.keterangan_issue ? `<div class="text-[11px] text-red-600 mt-1 max-w-xs">${item.keterangan_issue}</div>` : ""}
+            </td>
+            <td class="py-3 px-4 text-right">
+              <button onclick='openModal(${JSON.stringify(item).replace(/'/g, "&#39;")})'
+                class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold rounded-lg text-xs border border-blue-200 transition">
+                Update POD
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function openModal(item) {
+      document.getElementById("modal_row_number").value = item.row_number;
+      document.getElementById("modalSubtitle").textContent = `${item.no_spj} | ${item.customer}`;
+      document.getElementById("modal_sj_no").value = item.no_surat_jalan === "MENYUSUL" ? "" : item.no_surat_jalan;
+      document.getElementById("modal_status_gr").value = item.status_gr === "BELUM KEMBALI" ? "OK GR" : item.status_gr;
+      document.getElementById("modal_keterangan_issue").value = item.keterangan_issue || "";
+      toggleIssueField();
+
+      const modal = document.getElementById("podModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeModal() {
+      const modal = document.getElementById("podModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    function toggleIssueField() {
+      const status = document.getElementById("modal_status_gr").value;
+      const box = document.getElementById("issueContainer");
+      status === "OPEN GR" ? box.classList.remove("hidden") : box.classList.add("hidden");
+    }
+
+    function applyQuickIssue() {
+      const val = document.getElementById("quickIssueSelect").value;
+      if (val) document.getElementById("modal_keterangan_issue").value = val;
+    }
+
+    document.getElementById("podForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("savePodBtn");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      const statusGr = document.getElementById("modal_status_gr").value;
+      const payload = {
+        action: "UPDATE_POD",
+        data: {
+          row_number: Number(document.getElementById("modal_row_number").value),
+          no_surat_jalan: document.getElementById("modal_sj_no").value.trim(),
+          status_gr: statusGr,
+          keterangan_issue: statusGr === "OPEN GR" ? document.getElementById("modal_keterangan_issue").value.trim() : ""
+        }
+      };
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          closeModal();
+          await fetchOrders();
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        alert("Gagal update POD: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Simpan Perubahan";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TMS Admin POD - Input Order & SPJ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
+
+  <!-- Navbar -->
+  <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-4">
+    <div class="flex items-center gap-6">
+      <div>
+        <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
+        <p class="text-xs text-slate-400">Input Order & Penerbitan Surat Perintah Jalan (SPJ)</p>
+      </div>
+      <div class="flex gap-2 text-xs font-semibold">
+        <a href="index.html" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-sm">
+          + Input Order
+        </a>
+        <a href="pod.html" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+          Verifikasi POD
+        </a>
+      </div>
+    </div>
+    <div id="syncStatus" class="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-amber-400 border border-slate-700">
+      Menghubungkan ke Sheets...
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto p-6">
+    <form id="orderForm" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+      
+      <!-- Section 1: Informasi SPJ -->
+      <div>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">1. Informasi Order & SPJ</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor SPJ *</label>
+            <input type="text" id="no_spj" required
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Muat *</label>
+            <input type="date" id="tgl_muat" required
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Customer *</label>
+            <select id="customer_select" required
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">-- Pilih Customer --</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Armada & Driver -->
+      <div>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">2. Penugasan Armada & Driver</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Polisi (Nopol) *</label>
+            <input list="nopolList" id="nopol_input" placeholder="Ketik atau pilih nopol..." required
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <datalist id="nopolList"></datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada *</label>
+            <input type="text" id="vehicle_type" readonly placeholder="Otomatis dari Nopol"
+              class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver *</label>
+            <input type="text" id="driver_name" readonly placeholder="Otomatis dari Nopol"
+              class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-600" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Rute & Preview Tarif -->
+      <div>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">3. Rute Pengiriman & Estimasi Tarif</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat *</label>
+            <select id="origin_select" required
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">-- Pilih Asal --</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar *</label>
+            <select id="destination_select" required
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">-- Pilih Tujuan --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Estimasi Uang Jalan (Otomatis dari Master)</label>
+            <input type="text" id="uang_jalan_preview" readonly value="Rp 0"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Estimasi Tarif Jual (Otomatis dari Master)</label>
+            <input type="text" id="tarif_jual_preview" readonly value="Rp 0"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-emerald-700" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Daftar Nomor Surat Jalan (Multi-SJ) -->
+      <div>
+        <div class="flex justify-between items-center mb-3 border-b pb-2">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">4. Nomor Surat Jalan (SJ)</h2>
+          <button type="button" id="addSjBtn"
+            class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition">
+            + Tambah Nomor SJ
+          </button>
+        </div>
+        <div id="sjContainer" class="space-y-2">
+          <div class="flex gap-2 items-center sj-row">
+            <input type="text" name="sj_no[]" placeholder="Contoh: SJ/AHM/2611/001 (Kosongkan jika menyusul)"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="pt-4 border-t flex items-center justify-between">
+        <div id="formAlert" class="text-sm font-medium"></div>
+        <button type="submit" id="submitBtn"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition">
+          Simpan Order & Terbitkan SPJ
+        </button>
+      </div>
+
+    </form>
+  </main>
+
+  <script>
+    // TEMPEL WEB APP URL APPS SCRIPT KAMU DI SINI:
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
+
+    let masterRoutes = [];
+    let masterFleets = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      generateSpjNo();
+      document.getElementById("tgl_muat").valueAsDate = new Date();
+      loadMasterData();
+    });
+
+    function generateSpjNo() {
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      const rand = Math.floor(100 + Math.random() * 900);
+      document.getElementById("no_spj").value = `SPJ-${yy}${mm}${dd}-${rand}`;
+    }
+
+    async function loadMasterData() {
+      const statusEl = document.getElementById("syncStatus");
+      try {
+        const res = await fetch(APPS_SCRIPT_URL);
+        const json = await res.json();
+        if (json.status === "success") {
+          masterRoutes = json.routes || [];
+          masterFleets = json.fleets || [];
+          populateDropdowns();
+          statusEl.textContent = "Terhubung ke Master Sheets";
+          statusEl.className = "text-xs bg-emerald-950 px-3 py-1.5 rounded-full text-emerald-400 border border-emerald-700";
+        } else {
+          throw new Error(json.message);
+        }
+      } catch (err) {
+        statusEl.textContent = "Gagal Terhubung (Cek URL Apps Script)";
+        statusEl.className = "text-xs bg-red-950 px-3 py-1.5 rounded-full text-red-400 border border-red-700";
+      }
+    }
+
+    function populateDropdowns() {
+      const customerSelect = document.getElementById("customer_select");
+      const uniqueCustomers = [...new Set(masterRoutes.map(r => r.customer))];
+      uniqueCustomers.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        customerSelect.appendChild(opt);
+      });
+
+      const nopolList = document.getElementById("nopolList");
+      masterFleets.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f.nopol;
+        opt.label = `${f.vehicle_type} - ${f.driver_name}`;
+        nopolList.appendChild(opt);
+      });
+    }
+
+    document.getElementById("nopol_input").addEventListener("input", (e) => {
+      const val = e.target.value.trim().toUpperCase();
+      const fleet = masterFleets.find(f => f.nopol.toUpperCase() === val);
+      if (fleet) {
+        document.getElementById("vehicle_type").value = fleet.vehicle_type;
+        document.getElementById("driver_name").value = fleet.driver_name;
+        autoLookupRate();
+      }
+    });
+
+    document.getElementById("customer_select").addEventListener("change", (e) => {
+      const cust = e.target.value;
+      const filtered = masterRoutes.filter(r => r.customer === cust);
+      const origins = [...new Set(filtered.map(r => r.origin))];
+      const dests = [...new Set(filtered.map(r => r.destination))];
+
+      const originSel = document.getElementById("origin_select");
+      const destSel = document.getElementById("destination_select");
+
+      originSel.innerHTML = '<option value="">-- Pilih Asal --</option>';
+      destSel.innerHTML = '<option value="">-- Pilih Tujuan --</option>';
+
+      origins.forEach(o => originSel.innerHTML += `<option value="${o}">${o}</option>`);
+      dests.forEach(d => destSel.innerHTML += `<option value="${d}">${d}</option>`);
+      autoLookupRate();
+    });
+
+    document.getElementById("origin_select").addEventListener("change", autoLookupRate);
+    document.getElementById("destination_select").addEventListener("change", autoLookupRate);
+
+    function autoLookupRate() {
+      const cust = document.getElementById("customer_select").value;
+      const origin = document.getElementById("origin_select").value;
+      const dest = document.getElementById("destination_select").value;
+      const vType = document.getElementById("vehicle_type").value;
+
+      const match = masterRoutes.find(r =>
+        r.customer === cust &&
+        r.origin === origin &&
+        r.destination === dest &&
+        r.vehicle_type.toLowerCase() === vType.toLowerCase()
+      );
+
+      document.getElementById("uang_jalan_preview").value = match ? "Rp " + match.uang_jalan.toLocaleString("id-ID") : "Rp 0";
+      document.getElementById("tarif_jual_preview").value = match ? "Rp " + match.base_rate.toLocaleString("id-ID") : "Rp 0";
+    }
+
+    document.getElementById("addSjBtn").addEventListener("click", () => {
+      const container = document.getElementById("sjContainer");
+      const row = document.createElement("div");
+      row.className = "flex gap-2 items-center sj-row";
+      row.innerHTML = `
+        <input type="text" name="sj_no[]" placeholder="Nomor Surat Jalan berikutnya..."
+          class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button type="button" onclick="this.parentElement.remove()"
+          class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">
+          Hapus
+        </button>
+      `;
+      container.appendChild(row);
+    });
+
+    document.getElementById("orderForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitBtn");
+      const alertEl = document.getElementById("formAlert");
+
+      const sjInputs = document.querySelectorAll('input[name="sj_no[]"]');
+      const sjList = Array.from(sjInputs).map(inp => ({ sj_no: inp.value.trim() || "MENYUSUL" }));
+
+      const payload = {
+        action: "CREATE_ORDER",
+        data: {
+          no_spj: document.getElementById("no_spj").value.trim(),
+          tgl_muat: document.getElementById("tgl_muat").value,
+          customer: document.getElementById("customer_select").value,
+          asal: document.getElementById("origin_select").value,
+          tujuan: document.getElementById("destination_select").value,
+          nopol: document.getElementById("nopol_input").value.trim().toUpperCase(),
+          surat_jalan_list: sjList
+        }
+      };
+
+      btn.disabled = true;
+      btn.textContent = "Menyimpan ke Sheets...";
+      alertEl.textContent = "";
+
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          alertEl.className = "text-sm font-semibold text-emerald-600";
+          alertEl.textContent = `Berhasil! ${payload.data.no_spj} sudah tersimpan di Google Sheets.`;
+          document.getElementById("orderForm").reset();
+          generateSpjNo();
+          document.getElementById("tgl_muat").valueAsDate = new Date();
+          document.getElementById("uang_jalan_preview").value = "Rp 0";
+          document.getElementById("tarif_jual_preview").value = "Rp 0";
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        alertEl.className = "text-sm font-semibold text-red-600";
+        alertEl.textContent = "Gagal menyimpan: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Simpan Order & Terbitkan SPJ";
+      }
+    });
+  </script>
+</body>
+</html>
