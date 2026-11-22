@@ -8,197 +8,224 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
 
-  <!-- Navbar dengan Sistem Tab -->
-  <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-4">
-    <div class="flex items-center gap-6">
-      <div>
-        <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
-        <p class="text-xs text-slate-400">Sistem Input SPJ & Kontrol Surat Jalan</p>
+  <!-- LAYAR KUNCI PIN (PIN: 2026) -->
+  <div id="pinOverlay" class="fixed inset-0 bg-slate-900 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-5">
+      <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto font-bold text-xl">
+        &#128274;
       </div>
-      <div class="flex gap-2 text-xs font-semibold">
-        <button type="button" id="tabBtnOrder" onclick="switchTab('order')"
-          class="px-3.5 py-2 rounded-lg bg-blue-600 text-white shadow-sm transition">
-          + Input Order
+      <div>
+        <h2 class="text-lg font-bold text-slate-800">TMS Operasional & POD</h2>
+        <p class="text-xs text-slate-500 mt-1">Masukkan PIN Tim Operasional untuk mengakses sistem</p>
+      </div>
+      <form id="pinForm" class="space-y-3">
+        <input type="password" id="pinInput" inputmode="numeric" placeholder="••••" required autofocus
+          class="w-full text-center tracking-[0.5em] text-xl font-bold px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <p id="pinError" class="text-xs font-semibold text-red-600 hidden">PIN salah! Silakan coba lagi.</p>
+        <button type="submit" id="pinSubmitBtn"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-sm transition">
+          Buka Sistem
         </button>
-        <button type="button" id="tabBtnPod" onclick="switchTab('pod')"
-          class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-          Verifikasi POD
-        </button>
-      </div>
+      </form>
     </div>
-    <div id="syncStatus" class="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-amber-400 border border-slate-700">
-      Menghubungkan ke Sheets...
-    </div>
-  </nav>
+  </div>
 
-  <!-- ==================== VIEW 1: INPUT ORDER ==================== -->
-  <section id="viewOrder" class="max-w-4xl mx-auto p-6">
-    <form id="orderForm" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-      
-      <div>
-        <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">1. Informasi Order & SPJ</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor SPJ *</label>
-            <input type="text" id="no_spj" required
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Muat *</label>
-            <input type="date" id="tgl_muat" required
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Customer *</label>
-            <select id="customer_select" required
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">-- Pilih Customer --</option>
-            </select>
-          </div>
+  <!-- KONTEN UTAMA APLIKASI -->
+  <div id="appWrapper" class="hidden">
+    <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center gap-6">
+        <div>
+          <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
+          <p class="text-xs text-slate-400">Sistem Input SPJ & Kontrol Surat Jalan</p>
         </div>
-      </div>
-
-      <div>
-        <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">2. Penugasan Armada & Driver</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Polisi (Nopol) *</label>
-            <input list="nopolList" id="nopol_input" placeholder="Ketik atau pilih nopol..." required
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <datalist id="nopolList"></datalist>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada *</label>
-            <input type="text" id="vehicle_type" readonly placeholder="Otomatis dari Nopol"
-              class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-600" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver *</label>
-            <input type="text" id="driver_name" readonly placeholder="Otomatis dari Nopol"
-              class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-600" />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">3. Rute Pengiriman & Estimasi Tarif</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat *</label>
-            <select id="origin_select" required
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">-- Pilih Asal --</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar *</label>
-            <select id="destination_select" required
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">-- Pilih Tujuan --</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Estimasi Uang Jalan</label>
-            <input type="text" id="uang_jalan_preview" readonly value="Rp 0"
-              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Estimasi Tarif Jual</label>
-            <input type="text" id="tarif_jual_preview" readonly value="Rp 0"
-              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-emerald-700" />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="flex justify-between items-center mb-3 border-b pb-2">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">4. Nomor Surat Jalan (SJ)</h2>
-          <button type="button" id="addSjBtn"
-            class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition">
-            + Tambah Nomor SJ
+        <div class="flex gap-2 text-xs font-semibold">
+          <button type="button" id="tabBtnOrder" onclick="switchTab('order')"
+            class="px-3.5 py-2 rounded-lg bg-blue-600 text-white shadow-sm transition">
+            + Input Order
+          </button>
+          <button type="button" id="tabBtnPod" onclick="switchTab('pod')"
+            class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            Verifikasi POD
           </button>
         </div>
-        <div id="sjContainer" class="space-y-2">
-          <div class="flex gap-2 items-center sj-row">
-            <input type="text" name="sj_no[]" placeholder="Contoh: SJ/AHM/2611/001 (Kosongkan jika menyusul)"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="syncStatus" class="text-xs bg-emerald-950 px-3 py-1.5 rounded-full text-emerald-400 border border-emerald-700">
+          Terhubung
+        </div>
+        <button onclick="lockApp()" title="Kunci Layar"
+          class="text-xs bg-red-950 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded-lg border border-red-800 transition">
+          Kunci
+        </button>
+      </div>
+    </nav>
+
+    <!-- VIEW 1: INPUT ORDER -->
+    <section id="viewOrder" class="max-w-4xl mx-auto p-6">
+      <form id="orderForm" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">1. Informasi Order & SPJ</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor SPJ (Otomatis Urut) *</label>
+              <input type="text" id="no_spj" required
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Muat (dd/mm/yyyy) *</label>
+              <input type="date" id="tgl_muat" required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <p id="tglPreviewText" class="text-[11px] text-slate-500 mt-1">Format tersimpan: -</p>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Rute / Customer *</label>
+              <input list="customerList" id="customer_input" placeholder="Ketik atau pilih kode rute..." required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <datalist id="customerList"></datalist>
+            </div>
           </div>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">2. Penugasan Armada & Driver</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Polisi (Nopol) *</label>
+              <input list="nopolList" id="nopol_input" placeholder="Ketik atau pilih nopol..." required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <datalist id="nopolList"></datalist>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
+              <input list="armadaTypeList" id="vehicle_type" placeholder="Pilih / ketik jenis armada..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <datalist id="armadaTypeList">
+                <option value="Cdd Engkel">
+                <option value="Fuso Wing Box">
+                <option value="Tronton Wing Box">
+                <option value="CDD Box">
+                <option value="CDE Box">
+              </datalist>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver</label>
+              <input type="text" id="driver_name" placeholder="Otomatis / ketik nama driver"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">3. Detail Rute & Estimasi Tarif</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat *</label>
+              <input type="text" id="origin_input" placeholder="Isi lokasi asal muat..." required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar *</label>
+              <input type="text" id="destination_input" placeholder="Isi lokasi tujuan bongkar..." required
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Uang Jalan (Otomatis dari Master)</label>
+              <input type="text" id="uang_jalan_preview" readonly value="Rp 0"
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tarif Jual (Otomatis dari Master)</label>
+              <input type="text" id="tarif_jual_preview" readonly value="Rp 0"
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-emerald-700" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-3 border-b pb-2">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">4. Nomor Surat Jalan (SJ / DN)</h2>
+            <button type="button" id="addSjBtn"
+              class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition">
+              + Tambah Nomor SJ
+            </button>
+          </div>
+          <div id="sjContainer" class="space-y-2">
+            <div class="flex gap-2 items-center sj-row">
+              <input type="text" name="sj_no[]" placeholder="Contoh: DN46261100000001 (Kosongkan jika menyusul)"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t flex items-center justify-between">
+          <div id="formAlert" class="text-sm font-medium"></div>
+          <button type="submit" id="submitBtn"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition">
+            Simpan Order & Terbitkan SPJ
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- VIEW 2: VERIFIKASI POD -->
+    <section id="viewPod" class="hidden max-w-7xl mx-auto p-6 space-y-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div onclick="setFilter('ALL')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
+          <p class="text-xs font-semibold text-slate-500 uppercase">Total Surat Jalan</p>
+          <p id="kpiTotal" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+        </div>
+        <div onclick="setFilter('BELUM KEMBALI')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-amber-400 transition">
+          <p class="text-xs font-semibold text-amber-600 uppercase">Belum Kembali</p>
+          <p id="kpiBelum" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+        </div>
+        <div onclick="setFilter('OPEN GR')" class="cursor-pointer bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm hover:border-red-500 transition">
+          <p class="text-xs font-bold text-red-700 uppercase">OPEN GR (Tertahan)</p>
+          <p id="kpiOpen" class="text-2xl font-bold text-red-700 mt-1">0</p>
+        </div>
+        <div onclick="setFilter('OK GR')" class="cursor-pointer bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-500 transition">
+          <p class="text-xs font-bold text-emerald-700 uppercase">OK GR (Siap Tagih)</p>
+          <p id="kpiOk" class="text-2xl font-bold text-emerald-700 mt-1">0</p>
         </div>
       </div>
 
-      <div class="pt-4 border-t flex items-center justify-between">
-        <div id="formAlert" class="text-sm font-medium"></div>
-        <button type="submit" id="submitBtn"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition">
-          Simpan Order & Terbitkan SPJ
-        </button>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between gap-4">
+        <div class="flex flex-wrap gap-2 items-center">
+          <button data-status="ALL" onclick="setFilter('ALL')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">Semua</button>
+          <button data-status="BELUM KEMBALI" onclick="setFilter('BELUM KEMBALI')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Belum Kembali</button>
+          <button data-status="OPEN GR" onclick="setFilter('OPEN GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OPEN GR</button>
+          <button data-status="OK GR" onclick="setFilter('OK GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OK GR</button>
+          <button onclick="loadAllData(activePin)" id="refreshBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+            Refresh Data
+          </button>
+        </div>
+        <div class="w-full md:w-80">
+          <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Cari No. SPJ, DN / SJ, Nopol, Rute..."
+            class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
       </div>
-    </form>
-  </section>
 
-  <!-- ==================== VIEW 2: VERIFIKASI POD ==================== -->
-  <section id="viewPod" class="hidden max-w-7xl mx-auto p-6 space-y-6">
-
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div onclick="setFilter('ALL')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
-        <p class="text-xs font-semibold text-slate-500 uppercase">Total SPJ / SJ</p>
-        <p id="kpiTotal" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
+                <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
+                <th class="py-3 px-4">Kode Rute & Lokasi</th>
+                <th class="py-3 px-4">Armada & Driver</th>
+                <th class="py-3 px-4">No. Surat Jalan / DN</th>
+                <th class="py-3 px-4">Status GR & Keterangan</th>
+                <th class="py-3 px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
+          </table>
+        </div>
       </div>
-      <div onclick="setFilter('BELUM KEMBALI')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-amber-400 transition">
-        <p class="text-xs font-semibold text-amber-600 uppercase">Belum Kembali</p>
-        <p id="kpiBelum" class="text-2xl font-bold text-amber-600 mt-1">0</p>
-      </div>
-      <div onclick="setFilter('OPEN GR')" class="cursor-pointer bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm hover:border-red-500 transition">
-        <p class="text-xs font-bold text-red-700 uppercase">OPEN GR (Tertahan)</p>
-        <p id="kpiOpen" class="text-2xl font-bold text-red-700 mt-1">0</p>
-      </div>
-      <div onclick="setFilter('OK GR')" class="cursor-pointer bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-500 transition">
-        <p class="text-xs font-bold text-emerald-700 uppercase">OK GR (Siap Tagih)</p>
-        <p id="kpiOk" class="text-2xl font-bold text-emerald-700 mt-1">0</p>
-      </div>
-    </div>
-
-    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between gap-4">
-      <div class="flex flex-wrap gap-2 items-center">
-        <button data-status="ALL" onclick="setFilter('ALL')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">Semua</button>
-        <button data-status="BELUM KEMBALI" onclick="setFilter('BELUM KEMBALI')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Belum Kembali</button>
-        <button data-status="OPEN GR" onclick="setFilter('OPEN GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OPEN GR</button>
-        <button data-status="OK GR" onclick="setFilter('OK GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OK GR</button>
-        <button onclick="loadAllData()" id="refreshBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
-          Refresh Data
-        </button>
-      </div>
-      <div class="w-full md:w-80">
-        <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Cari No. SPJ, SJ, Nopol, Customer..."
-          class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-              <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
-              <th class="py-3 px-4">Customer & Rute</th>
-              <th class="py-3 px-4">Armada & Driver</th>
-              <th class="py-3 px-4">No. Surat Jalan</th>
-              <th class="py-3 px-4">Status GR & Keterangan</th>
-              <th class="py-3 px-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="ordersTableBody" class="divide-y divide-slate-200 text-sm">
-            <tr>
-              <td colspan="6" class="py-8 text-center text-slate-400">Memuat data dari Google Sheets...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
   <!-- Modal Verifikasi POD -->
   <div id="podModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50">
@@ -206,20 +233,30 @@
       <div class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center">
         <div>
           <h3 class="font-bold text-sm">Verifikasi POD Surat Jalan</h3>
-          <p id="modalSubtitle" class="text-xs text-slate-400 font-mono">SPJ-XXXX</p>
+          <p id="modalSubtitle" class="text-xs text-slate-400 font-mono">SPJ2026XXXX</p>
         </div>
         <button onclick="closeModal()" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
       </div>
 
       <form id="podForm" class="p-5 space-y-4">
         <input type="hidden" id="modal_row_number" />
-
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor SPJ</label>
+            <input type="text" id="modal_no_spj"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nopol Kendaraan</label>
+            <input list="nopolList" id="modal_nopol" placeholder="Isi Nopol..."
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Surat Jalan *</label>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Surat Jalan / DN *</label>
           <input type="text" id="modal_sj_no" required
             class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Status GR *</label>
           <select id="modal_status_gr" onchange="toggleIssueField()" required
@@ -229,7 +266,6 @@
             <option value="BELUM KEMBALI">BELUM KEMBALI</option>
           </select>
         </div>
-
         <div id="issueContainer" class="hidden bg-red-50 p-3 rounded-lg border border-red-200 space-y-2">
           <label class="block text-xs font-bold text-red-700">Keterangan Kendala (OPEN GR) *</label>
           <select id="quickIssueSelect" onchange="applyQuickIssue()"
@@ -243,14 +279,9 @@
           <textarea id="modal_keterangan_issue" rows="2" placeholder="Tulis detail kendala atau nomor part retur..."
             class="w-full px-3 py-2 border border-red-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
         </div>
-
         <div class="pt-3 border-t flex justify-end gap-2">
-          <button type="button" onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">
-            Batal
-          </button>
-          <button type="submit" id="savePodBtn" class="px-5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm">
-            Simpan Perubahan
-          </button>
+          <button type="button" onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+          <button type="submit" id="savePodBtn" class="px-5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm">Simpan Perubahan</button>
         </div>
       </form>
     </div>
@@ -260,16 +291,68 @@
     // TEMPEL WEB APP URL APPS SCRIPT KAMU DI SINI:
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
 
+    let activePin = sessionStorage.getItem("tms_pod_pin") || "";
     let masterRoutes = [];
     let masterFleets = [];
     let allOrders = [];
     let currentFilter = "ALL";
 
     document.addEventListener("DOMContentLoaded", () => {
-      generateSpjNo();
-      document.getElementById("tgl_muat").valueAsDate = new Date();
-      loadAllData();
+      setTodayDate();
+      if (activePin) verifyAndLoad(activePin);
     });
+
+    function setTodayDate() {
+      const el = document.getElementById("tgl_muat");
+      el.valueAsDate = new Date();
+      updateDatePreview();
+    }
+
+    function updateDatePreview() {
+      const val = document.getElementById("tgl_muat").value;
+      const preview = document.getElementById("tglPreviewText");
+      if (val && val.includes("-")) {
+        const [yyyy, mm, dd] = val.split("-");
+        preview.textContent = `Format tersimpan: ${dd}/${mm}/${yyyy}`;
+      }
+    }
+
+    document.getElementById("tgl_muat").addEventListener("change", updateDatePreview);
+
+    document.getElementById("pinForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await verifyAndLoad(document.getElementById("pinInput").value.trim());
+    });
+
+    async function verifyAndLoad(pinToTest) {
+      const btn = document.getElementById("pinSubmitBtn");
+      const errEl = document.getElementById("pinError");
+      btn.disabled = true;
+      btn.textContent = "Memeriksa PIN...";
+      errEl.classList.add("hidden");
+
+      const ok = await loadAllData(pinToTest);
+      if (ok) {
+        activePin = pinToTest;
+        sessionStorage.setItem("tms_pod_pin", activePin);
+        document.getElementById("pinOverlay").classList.add("hidden");
+        document.getElementById("appWrapper").classList.remove("hidden");
+      } else {
+        sessionStorage.removeItem("tms_pod_pin");
+        errEl.classList.remove("hidden");
+        document.getElementById("pinInput").value = "";
+      }
+      btn.disabled = false;
+      btn.textContent = "Buka Sistem";
+    }
+
+    function lockApp() {
+      sessionStorage.removeItem("tms_pod_pin");
+      activePin = "";
+      document.getElementById("pinInput").value = "";
+      document.getElementById("appWrapper").classList.add("hidden");
+      document.getElementById("pinOverlay").classList.remove("hidden");
+    }
 
     function switchTab(tab) {
       const viewOrder = document.getElementById("viewOrder");
@@ -291,57 +374,50 @@
       }
     }
 
-    function generateSpjNo() {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const dd = String(now.getDate()).padStart(2, "0");
-      const rand = Math.floor(100 + Math.random() * 900);
-      document.getElementById("no_spj").value = `SPJ-${yy}${mm}${dd}-${rand}`;
-    }
-
-    async function loadAllData() {
-      const statusEl = document.getElementById("syncStatus");
+    async function loadAllData(pin) {
       const refreshBtn = document.getElementById("refreshBtn");
       if (refreshBtn) refreshBtn.textContent = "Memuat...";
 
       try {
-        const res = await fetch(APPS_SCRIPT_URL);
+        const res = await fetch(`${APPS_SCRIPT_URL}?pin=${encodeURIComponent(pin)}`);
         const json = await res.json();
         if (json.status === "success") {
           masterRoutes = json.routes || [];
           masterFleets = json.fleets || [];
           allOrders = json.orders || [];
 
-          populateDropdowns();
-          document.getElementById("kpiTotal").textContent = json.summary?.total || 0;
-          document.getElementById("kpiBelum").textContent = json.summary?.belum_kembali || 0;
-          document.getElementById("kpiOpen").textContent = json.summary?.open_gr || 0;
-          document.getElementById("kpiOk").textContent = json.summary?.ok_gr || 0;
-          renderTable();
+          if (json.next_spj) {
+            document.getElementById("no_spj").value = json.next_spj;
+          }
 
-          statusEl.textContent = "Terhubung ke Master Sheets";
-          statusEl.className = "text-xs bg-emerald-950 px-3 py-1.5 rounded-full text-emerald-400 border border-emerald-700";
-        } else {
-          throw new Error(json.message);
+          populateDropdowns();
+          document.getElementById("kpiTotal").textContent = (json.summary?.total || 0).toLocaleString("id-ID");
+          document.getElementById("kpiBelum").textContent = (json.summary?.belum_kembali || 0).toLocaleString("id-ID");
+          document.getElementById("kpiOpen").textContent = (json.summary?.open_gr || 0).toLocaleString("id-ID");
+          document.getElementById("kpiOk").textContent = (json.summary?.ok_gr || 0).toLocaleString("id-ID");
+          renderTable();
+          return true;
         }
+        return false;
       } catch (err) {
-        statusEl.textContent = "Gagal Terhubung (Cek URL Apps Script)";
-        statusEl.className = "text-xs bg-red-950 px-3 py-1.5 rounded-full text-red-400 border border-red-700";
+        return false;
       } finally {
         if (refreshBtn) refreshBtn.textContent = "Refresh Data";
       }
     }
 
     function populateDropdowns() {
-      const customerSelect = document.getElementById("customer_select");
-      customerSelect.innerHTML = '<option value="">-- Pilih Customer --</option>';
-      const uniqueCustomers = [...new Set(masterRoutes.map(r => r.customer))];
-      uniqueCustomers.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        customerSelect.appendChild(opt);
+      const custList = document.getElementById("customerList");
+      custList.innerHTML = "";
+      const seenCust = new Set();
+      masterRoutes.forEach(r => {
+        if (!seenCust.has(r.customer)) {
+          seenCust.add(r.customer);
+          const opt = document.createElement("option");
+          opt.value = r.customer;
+          opt.label = `Tarif: Rp ${r.base_rate.toLocaleString("id-ID")} | UJ: Rp ${r.uang_jalan.toLocaleString("id-ID")}`;
+          custList.appendChild(opt);
+        }
       });
 
       const nopolList = document.getElementById("nopolList");
@@ -349,69 +425,69 @@
       masterFleets.forEach(f => {
         const opt = document.createElement("option");
         opt.value = f.nopol;
-        opt.label = `${f.vehicle_type} - ${f.driver_name}`;
+        if (f.vehicle_type || f.driver_name) {
+          opt.label = `${f.vehicle_type} - ${f.driver_name}`;
+        }
         nopolList.appendChild(opt);
       });
     }
+
+    function updateRatePreview() {
+      const custVal = document.getElementById("customer_input").value.trim().toLowerCase();
+      const vTypeVal = document.getElementById("vehicle_type").value.trim().toLowerCase();
+
+      let match = masterRoutes.find(r =>
+        r.customer.toLowerCase() === custVal &&
+        r.vehicle_type.toLowerCase() === vTypeVal &&
+        vTypeVal !== ""
+      );
+
+      if (!match) {
+        match = masterRoutes.find(r => r.customer.toLowerCase() === custVal);
+      }
+
+      if (match) {
+        document.getElementById("uang_jalan_preview").value = "Rp " + match.uang_jalan.toLocaleString("id-ID");
+        document.getElementById("tarif_jual_preview").value = "Rp " + match.base_rate.toLocaleString("id-ID");
+        if (match.origin && !match.origin.toUpperCase().startsWith("NONE") && !document.getElementById("origin_input").value) {
+          document.getElementById("origin_input").value = match.origin;
+        }
+        if (match.destination && !match.destination.toUpperCase().startsWith("NONE") && !document.getElementById("destination_input").value) {
+          document.getElementById("destination_input").value = match.destination;
+        }
+      } else {
+        document.getElementById("uang_jalan_preview").value = "Rp 0";
+        document.getElementById("tarif_jual_preview").value = "Rp 0";
+      }
+    }
+
+    document.getElementById("customer_input").addEventListener("input", () => {
+      document.getElementById("origin_input").value = "";
+      document.getElementById("destination_input").value = "";
+      updateRatePreview();
+    });
+
+    document.getElementById("vehicle_type").addEventListener("input", updateRatePreview);
 
     document.getElementById("nopol_input").addEventListener("input", (e) => {
       const val = e.target.value.trim().toUpperCase();
       const fleet = masterFleets.find(f => f.nopol.toUpperCase() === val);
       if (fleet) {
-        document.getElementById("vehicle_type").value = fleet.vehicle_type;
-        document.getElementById("driver_name").value = fleet.driver_name;
-        autoLookupRate();
+        if (fleet.vehicle_type) document.getElementById("vehicle_type").value = fleet.vehicle_type;
+        if (fleet.driver_name) document.getElementById("driver_name").value = fleet.driver_name;
+        updateRatePreview();
       }
     });
-
-    document.getElementById("customer_select").addEventListener("change", (e) => {
-      const cust = e.target.value;
-      const filtered = masterRoutes.filter(r => r.customer === cust);
-      const origins = [...new Set(filtered.map(r => r.origin))];
-      const dests = [...new Set(filtered.map(r => r.destination))];
-
-      const originSel = document.getElementById("origin_select");
-      const destSel = document.getElementById("destination_select");
-
-      originSel.innerHTML = '<option value="">-- Pilih Asal --</option>';
-      destSel.innerHTML = '<option value="">-- Pilih Tujuan --</option>';
-
-      origins.forEach(o => originSel.innerHTML += `<option value="${o}">${o}</option>`);
-      dests.forEach(d => destSel.innerHTML += `<option value="${d}">${d}</option>`);
-      autoLookupRate();
-    });
-
-    document.getElementById("origin_select").addEventListener("change", autoLookupRate);
-    document.getElementById("destination_select").addEventListener("change", autoLookupRate);
-
-    function autoLookupRate() {
-      const cust = document.getElementById("customer_select").value;
-      const origin = document.getElementById("origin_select").value;
-      const dest = document.getElementById("destination_select").value;
-      const vType = document.getElementById("vehicle_type").value;
-
-      const match = masterRoutes.find(r =>
-        r.customer === cust &&
-        r.origin === origin &&
-        r.destination === dest &&
-        r.vehicle_type.toLowerCase() === vType.toLowerCase()
-      );
-
-      document.getElementById("uang_jalan_preview").value = match ? "Rp " + match.uang_jalan.toLocaleString("id-ID") : "Rp 0";
-      document.getElementById("tarif_jual_preview").value = match ? "Rp " + match.base_rate.toLocaleString("id-ID") : "Rp 0";
-    }
 
     document.getElementById("addSjBtn").addEventListener("click", () => {
       const container = document.getElementById("sjContainer");
       const row = document.createElement("div");
       row.className = "flex gap-2 items-center sj-row";
       row.innerHTML = `
-        <input type="text" name="sj_no[]" placeholder="Nomor Surat Jalan berikutnya..."
+        <input type="text" name="sj_no[]" placeholder="Nomor Surat Jalan / DN berikutnya..."
           class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
         <button type="button" onclick="this.parentElement.remove()"
-          class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">
-          Hapus
-        </button>
+          class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">Hapus</button>
       `;
       container.appendChild(row);
     });
@@ -425,14 +501,17 @@
       const sjList = Array.from(sjInputs).map(inp => ({ sj_no: inp.value.trim() || "MENYUSUL" }));
 
       const payload = {
+        pin: activePin,
         action: "CREATE_ORDER",
         data: {
           no_spj: document.getElementById("no_spj").value.trim(),
           tgl_muat: document.getElementById("tgl_muat").value,
-          customer: document.getElementById("customer_select").value,
-          asal: document.getElementById("origin_select").value,
-          tujuan: document.getElementById("destination_select").value,
+          customer: document.getElementById("customer_input").value.trim(),
+          asal: document.getElementById("origin_input").value.trim(),
+          tujuan: document.getElementById("destination_input").value.trim(),
           nopol: document.getElementById("nopol_input").value.trim().toUpperCase(),
+          jenis_armada: document.getElementById("vehicle_type").value.trim(),
+          nama_driver: document.getElementById("driver_name").value.trim(),
           surat_jalan_list: sjList
         }
       };
@@ -453,11 +532,10 @@
           alertEl.className = "text-sm font-semibold text-emerald-600";
           alertEl.textContent = `Berhasil! ${payload.data.no_spj} sudah tersimpan di Google Sheets.`;
           document.getElementById("orderForm").reset();
-          generateSpjNo();
-          document.getElementById("tgl_muat").valueAsDate = new Date();
+          setTodayDate();
           document.getElementById("uang_jalan_preview").value = "Rp 0";
           document.getElementById("tarif_jual_preview").value = "Rp 0";
-          await loadAllData();
+          await loadAllData(activePin);
         } else {
           throw new Error(result.message);
         }
@@ -513,17 +591,15 @@
             </td>
             <td class="py-3 px-4">
               <div class="font-semibold text-slate-800 text-xs">${item.customer}</div>
-              <div class="text-xs text-slate-500">${item.asal} &rarr; ${item.tujuan}</div>
+              <div class="text-xs text-slate-500">${item.asal || "-"} &rarr; ${item.tujuan || "-"}</div>
             </td>
             <td class="py-3 px-4">
-              <div class="font-bold text-xs text-slate-800">${item.nopol} <span class="font-normal text-slate-500">(${item.jenis_armada})</span></div>
-              <div class="text-xs text-slate-500">${item.nama_driver}</div>
+              <div class="font-bold text-xs text-slate-800">${item.nopol || "-"} ${item.jenis_armada ? `<span class="font-normal text-slate-500">(${item.jenis_armada})</span>` : ""}</div>
+              <div class="text-xs text-slate-500">${item.nama_driver || "-"}</div>
             </td>
             <td class="py-3 px-4 font-mono text-xs font-semibold text-slate-700">${item.no_surat_jalan}</td>
             <td class="py-3 px-4">
-              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">
-                ${item.status_gr}
-              </span>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">${item.status_gr}</span>
               ${item.keterangan_issue ? `<div class="text-[11px] text-red-600 mt-1 max-w-xs">${item.keterangan_issue}</div>` : ""}
             </td>
             <td class="py-3 px-4 text-right">
@@ -540,6 +616,8 @@
     function openModal(item) {
       document.getElementById("modal_row_number").value = item.row_number;
       document.getElementById("modalSubtitle").textContent = `${item.no_spj} | ${item.customer}`;
+      document.getElementById("modal_no_spj").value = item.no_spj === "-" ? "" : item.no_spj;
+      document.getElementById("modal_nopol").value = item.nopol || "";
       document.getElementById("modal_sj_no").value = item.no_surat_jalan === "MENYUSUL" ? "" : item.no_surat_jalan;
       document.getElementById("modal_status_gr").value = item.status_gr === "BELUM KEMBALI" ? "OK GR" : item.status_gr;
       document.getElementById("modal_keterangan_issue").value = item.keterangan_issue || "";
@@ -575,9 +653,12 @@
 
       const statusGr = document.getElementById("modal_status_gr").value;
       const payload = {
+        pin: activePin,
         action: "UPDATE_POD",
         data: {
           row_number: Number(document.getElementById("modal_row_number").value),
+          no_spj: document.getElementById("modal_no_spj").value.trim(),
+          nopol: document.getElementById("modal_nopol").value.trim().toUpperCase(),
           no_surat_jalan: document.getElementById("modal_sj_no").value.trim(),
           status_gr: statusGr,
           keterangan_issue: statusGr === "OPEN GR" ? document.getElementById("modal_keterangan_issue").value.trim() : ""
@@ -593,7 +674,7 @@
         const result = await res.json();
         if (result.status === "success") {
           closeModal();
-          await loadAllData();
+          await loadAllData(activePin);
         } else {
           throw new Error(result.message);
         }
