@@ -597,13 +597,25 @@
       }
     });
 
-    // Otomatis isi Armada & Driver saat edit Nopol di modal Verifikasi POD
     document.getElementById("modal_nopol").addEventListener("input", (e) => {
       const val = e.target.value.trim().toUpperCase();
       const fleet = masterFleets.find(f => f.nopol.toUpperCase() === val);
       if (fleet) {
         if (fleet.vehicle_type) document.getElementById("modal_jenis_armada").value = fleet.vehicle_type;
         if (fleet.driver_name) document.getElementById("modal_nama_driver").value = fleet.driver_name;
+      }
+    });
+
+    document.getElementById("modal_customer").addEventListener("input", (e) => {
+      const val = e.target.value.trim().toLowerCase();
+      const route = masterRoutes.find(r => r.customer.toLowerCase() === val);
+      if (route) {
+        if (route.origin && !route.origin.toUpperCase().startsWith("NONE")) {
+          document.getElementById("modal_asal").value = route.origin;
+        }
+        if (route.destination && !route.destination.toUpperCase().startsWith("NONE")) {
+          document.getElementById("modal_tujuan").value = route.destination;
+        }
       }
     });
 
