@@ -68,24 +68,71 @@
     <section id="viewOrder" class="max-w-4xl mx-auto p-6">
       <form id="orderForm" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
 
-        <!-- KOTAK IMPORT OTOMATIS DARI PDF TRIP NOTE / DELIVERY NOTE -->
-        <div class="bg-blue-50/80 border-2 border-dashed border-blue-300 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase">Auto-Fill PDF</span>
-              <h3 class="text-sm font-bold text-slate-800">Import dari PDF Trip Note / Delivery Note</h3>
+        <!-- KOTAK IMPORT OTOMATIS & PREVIEW HASIL BACA PDF -->
+        <div class="bg-blue-50/80 border-2 border-dashed border-blue-300 rounded-xl p-4 space-y-4">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase">Auto-Fill PDF</span>
+                <h3 class="text-sm font-bold text-slate-800">Import & Preview PDF Trip Note / Delivery Note</h3>
+              </div>
+              <p class="text-xs text-slate-600">
+                Mendukung <b>Regular Trip Note</b> (<i>Trip Note No, Delivery Date, Route</i>) &amp; <b>Delivery Note</b> (<i>DN No, Delivery Date, Material No</i>).
+              </p>
+              <p id="pdfReadStatus" class="text-xs font-semibold text-blue-700 hidden"></p>
             </div>
-            <p class="text-xs text-slate-600">
-              Mendukung <b>Regular Trip Note</b> (<i>Trip Note No, Delivery Date, Route</i>) &amp; <b>Delivery Note</b> (<i>DN No, Delivery Date, Material No</i>). Bisa pilih 1 atau beberapa file sekaligus.
-            </p>
-            <p id="pdfReadStatus" class="text-xs font-semibold text-blue-700 hidden"></p>
+            <div class="shrink-0">
+              <input type="file" id="pdfFileInput" accept="application/pdf" multiple class="hidden" />
+              <button type="button" onclick="document.getElementById('pdfFileInput').click()"
+                class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-2">
+                <span>&#128196; Pilih File PDF</span>
+              </button>
+            </div>
           </div>
-          <div class="shrink-0">
-            <input type="file" id="pdfFileInput" accept="application/pdf" multiple class="hidden" />
-            <button type="button" onclick="document.getElementById('pdfFileInput').click()"
-              class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-2">
-              <span>&#128196; Pilih File PDF</span>
-            </button>
+
+          <!-- PANEL PREVIEW HASIL PEMBACAAN PDF (MUNCUL OTOMATIS SETELAH UPLOAD) -->
+          <div id="pdfPreviewPanel" class="hidden bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-800 text-white px-4 py-2.5 flex flex-wrap justify-between items-center gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-bold">Preview Hasil Pembacaan PDF (Cek Sebelum Terapkan)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="clearPdfPreview()"
+                  class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[11px] font-semibold transition">
+                  Tutup / Reset
+                </button>
+                <button type="button" onclick="applyPdfPreviewToForm()"
+                  class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold shadow-sm transition">
+                  &#10003; Terapkan ke Form Input
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
+                    <th class="py-2 px-3">File & Jenis</th>
+                    <th class="py-2 px-3">No. SJ / DN (Bisa Diedit)</th>
+                    <th class="py-2 px-3">Tanggal Muat</th>
+                    <th class="py-2 px-3">Kode Rute</th>
+                    <th class="py-2 px-3 text-right">Dokumen</th>
+                  </tr>
+                </thead>
+                <tbody id="pdfPreviewBody" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
+
+            <!-- FRAME PREVIEW DOKUMEN PDF ASLI (OPSIONAL SAAT DIKLIK "LIHAT PDF") -->
+            <div id="pdfViewerContainer" class="hidden border-t border-slate-200 bg-slate-100 p-3 space-y-2">
+              <div class="flex justify-between items-center">
+                <span id="pdfViewerTitle" class="text-xs font-bold text-slate-700">Pratinjau Dokumen PDF</span>
+                <button type="button" onclick="closePdfViewer()"
+                  class="text-xs font-bold text-red-600 hover:underline">Tutup Pratinjau PDF &times;</button>
+              </div>
+              <iframe id="pdfViewerFrame" class="w-full h-80 rounded-lg border border-slate-300 bg-white"></iframe>
+            </div>
           </div>
         </div>
 
@@ -462,6 +509,7 @@
     let allOrders = [];
     let currentFilteredOrders = [];
     let currentFilter = "ALL";
+    let parsedPdfItems = [];
 
     document.addEventListener("DOMContentLoaded", () => {
       setTodayDate();
@@ -485,7 +533,7 @@
 
     document.getElementById("tgl_muat").addEventListener("change", updateDatePreview);
 
-    // --- PARSER PDF REGULAR TRIP NOTE & DELIVERY NOTE (MENDUKUNG MULTI-FILE) ---
+    // --- PARSER & PREVIEW PDF REGULAR TRIP NOTE & DELIVERY NOTE ---
     const MONTH_MAP = {
       jan: "01", feb: "02", mar: "03", apr: "04", may: "05", mei: "05",
       jun: "06", jul: "07", aug: "08", agu: "08", sep: "09",
@@ -509,6 +557,12 @@
       return "";
     }
 
+    function formatIsoToIndo(iso) {
+      if (!iso || !iso.includes("-")) return "-";
+      const [yyyy, mm, dd] = iso.split("-");
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
     document.getElementById("pdfFileInput").addEventListener("change", async (e) => {
       const files = Array.from(e.target.files || []);
       if (files.length === 0) return;
@@ -518,17 +572,17 @@
       statusEl.classList.add("text-blue-700");
       statusEl.textContent = `Membaca ${files.length} file PDF...`;
 
-      try {
-        let detectedTypes = new Set();
-        let extractedDocNumbers = [];
-        let extractedDeliveryDateIso = "";
-        let extractedRouteCode = "";
-        let totalPagesRead = 0;
+      // Bersihkan URL blob lama jika ada
+      parsedPdfItems.forEach(item => {
+        if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
+      });
+      parsedPdfItems = [];
 
+      try {
         for (const file of files) {
+          const blobUrl = URL.createObjectURL(file);
           const arrayBuffer = await file.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          totalPagesRead += pdf.numPages;
 
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
@@ -537,139 +591,64 @@
 
             const isDeliveryNoteFormat = /Delivery\s*Note/i.test(pageText) && /Material\s*No/i.test(pageText);
 
+            let docType = "Regular Trip Note";
+            let docNo = "";
+            let dateIso = "";
+            let routeCode = "";
+
             if (isDeliveryNoteFormat) {
-              detectedTypes.add("Delivery Note");
-
-              // 1. Pembacaan DN No -> No. SJ / DN
+              docType = "Delivery Note";
               const dnMatch = pageText.match(/DN\s*No\s*:\s*([A-Z0-9\-\/]+)/i);
-              if (dnMatch && dnMatch[1]) {
-                const dnVal = dnMatch[1].trim();
-                if (!extractedDocNumbers.includes(dnVal)) {
-                  extractedDocNumbers.push(dnVal);
-                }
-              }
+              if (dnMatch && dnMatch[1]) docNo = dnMatch[1].trim();
 
-              // 2. Pembacaan DELIVERY Date -> Tanggal Muat
-              if (!extractedDeliveryDateIso) {
-                const delivBlockMatch = pageText.match(/DELIVERY[\s\S]*?Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
-                const fallbackDateMatch = pageText.match(/Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
-                const rawDate = (delivBlockMatch && delivBlockMatch[1]) || (fallbackDateMatch && fallbackDateMatch[1]);
-                if (rawDate) {
-                  extractedDeliveryDateIso = parseTripNoteDateToIso(rawDate);
-                }
-              }
+              const delivBlockMatch = pageText.match(/DELIVERY[\s\S]*?Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
+              const fallbackDateMatch = pageText.match(/Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
+              const rawDate = (delivBlockMatch && delivBlockMatch[1]) || (fallbackDateMatch && fallbackDateMatch[1]);
+              if (rawDate) dateIso = parseTripNoteDateToIso(rawDate);
 
-              // 3. Pembacaan Material No -> Kode Rute
-              if (!extractedRouteCode) {
-                const matMatch = pageText.match(/Remarks\s+1\s+([A-Z0-9\-\_\/]+)\s+[A-Z0-9]+/i);
-                if (matMatch && matMatch[1]) {
-                  extractedRouteCode = matMatch[1].trim();
-                } else {
-                  const fallbackMat = pageText.match(/Material\s*No[\s\S]*?\b1\s+([A-Z0-9\-\_\/]{4,20})\b/i);
-                  if (fallbackMat && fallbackMat[1]) {
-                    extractedRouteCode = fallbackMat[1].trim();
-                  }
-                }
+              const matMatch = pageText.match(/Remarks\s+1\s+([A-Z0-9\-\_\/]+)\s+[A-Z0-9]+/i);
+              if (matMatch && matMatch[1]) {
+                routeCode = matMatch[1].trim();
+              } else {
+                const fallbackMat = pageText.match(/Material\s*No[\s\S]*?\b1\s+([A-Z0-9\-\_\/]{4,20})\b/i);
+                if (fallbackMat && fallbackMat[1]) routeCode = fallbackMat[1].trim();
               }
-
             } else {
-              detectedTypes.add("Regular Trip Note");
-
-              // 1. Pembacaan Trip Note No -> No. SJ / DN
               const tripNoteMatch = pageText.match(/Trip\s*Note\s*No\s*:\s*([A-Z0-9\-\/]+)/i);
-              if (tripNoteMatch && tripNoteMatch[1]) {
-                const tn = tripNoteMatch[1].trim();
-                if (!extractedDocNumbers.includes(tn)) {
-                  extractedDocNumbers.push(tn);
-                }
-              }
+              if (tripNoteMatch && tripNoteMatch[1]) docNo = tripNoteMatch[1].trim();
 
-              // 2. Pembacaan Delivery Date -> Tanggal Muat
-              if (!extractedDeliveryDateIso) {
-                const delivDateMatch = pageText.match(/Delivery\s*Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
-                if (delivDateMatch && delivDateMatch[1]) {
-                  extractedDeliveryDateIso = parseTripNoteDateToIso(delivDateMatch[1]);
-                }
-              }
+              const delivDateMatch = pageText.match(/Delivery\s*Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
+              if (delivDateMatch && delivDateMatch[1]) dateIso = parseTripNoteDateToIso(delivDateMatch[1]);
 
-              // 3. Pembacaan Route -> Kode Rute
-              if (!extractedRouteCode) {
-                const routeMatch = pageText.match(/Route\s*:\s*([^\s]+)/i);
-                if (routeMatch && routeMatch[1]) {
-                  extractedRouteCode = routeMatch[1].trim();
-                }
-              }
+              const routeMatch = pageText.match(/Route\s*:\s*([^\s]+)/i);
+              if (routeMatch && routeMatch[1]) routeCode = routeMatch[1].trim();
+            }
+
+            if (docNo || dateIso || routeCode) {
+              parsedPdfItems.push({
+                fileName: file.name,
+                pageNum: pageNum,
+                totalPages: pdf.numPages,
+                docType: docType,
+                docNo: docNo,
+                dateIso: dateIso,
+                routeCode: routeCode,
+                blobUrl: blobUrl
+              });
             }
           }
         }
 
-        // Isi otomatis Tanggal Muat
-        if (extractedDeliveryDateIso) {
-          document.getElementById("tgl_muat").value = extractedDeliveryDateIso;
-          updateDatePreview();
+        if (parsedPdfItems.length === 0) {
+          throw new Error("Pola kolom Trip Note / Delivery Note tidak ditemukan pada file PDF.");
         }
 
-        // Isi otomatis Kode Rute & picu pencocokan Master_Tarif
-        if (extractedRouteCode) {
-          const custInput = document.getElementById("customer_input");
-          let matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === extractedRouteCode.toLowerCase());
-          if (!matchedMaster) {
-            const baseRoute = extractedRouteCode.split(/[\\\/]/)[0].trim().toLowerCase();
-            matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === baseRoute);
-          }
-          custInput.value = matchedMaster ? matchedMaster.customer : extractedRouteCode;
-          document.getElementById("origin_input").value = "";
-          document.getElementById("destination_input").value = "";
-          updateRatePreview();
-        }
-
-        // Isi otomatis Nomor Surat Jalan / DN
-        if (extractedDocNumbers.length > 0) {
-          const sjContainer = document.getElementById("sjContainer");
-          sjContainer.innerHTML = "";
-          extractedDocNumbers.forEach((docNo, idx) => {
-            const row = document.createElement("div");
-            row.className = "grid grid-cols-12 gap-2 items-center sj-row";
-            if (idx === 0) {
-              row.innerHTML = `
-                <div class="col-span-8">
-                  <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN (Kosongkan jika menyusul)"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div class="col-span-4">
-                  <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg (Opsional)"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-              `;
-            } else {
-              row.innerHTML = `
-                <div class="col-span-7">
-                  <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN berikutnya..."
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div class="col-span-3">
-                  <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div class="col-span-2">
-                  <button type="button" onclick="this.closest('.sj-row').remove()"
-                    class="w-full px-2 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">Hapus</button>
-                </div>
-              `;
-            }
-            sjContainer.appendChild(row);
-          });
-        }
-
-        if (extractedDocNumbers.length > 0 || extractedDeliveryDateIso || extractedRouteCode) {
-          const docLabel = Array.from(detectedTypes).join(" & ");
-          statusEl.classList.remove("text-blue-700");
-          statusEl.classList.add("text-emerald-700");
-          statusEl.textContent = `Berhasil membaca ${docLabel} (${files.length} file, ${totalPagesRead} hal): No. SJ/DN [${extractedDocNumbers.join(", ") || "-"}], Tgl [${extractedDeliveryDateIso || "-"}], Kode Rute [${extractedRouteCode || "-"}]`;
-        } else {
-          throw new Error("Pola kolom dokumen tidak ditemukan di file PDF ini.");
-        }
+        renderPdfPreviewPanel();
+        statusEl.classList.remove("text-blue-700");
+        statusEl.classList.add("text-emerald-700");
+        statusEl.textContent = `Selesai membaca ${parsedPdfItems.length} halaman dokumen dari ${files.length} file PDF. Silakan periksa hasil preview di bawah lalu klik "Terapkan ke Form Input".`;
       } catch (err) {
+        document.getElementById("pdfPreviewPanel").classList.add("hidden");
         statusEl.classList.remove("text-blue-700");
         statusEl.classList.add("text-red-600");
         statusEl.textContent = "Gagal membaca PDF: " + err.message;
@@ -677,6 +656,154 @@
         e.target.value = "";
       }
     });
+
+    function renderPdfPreviewPanel() {
+      const panel = document.getElementById("pdfPreviewPanel");
+      const tbody = document.getElementById("pdfPreviewBody");
+      panel.classList.remove("hidden");
+
+      tbody.innerHTML = parsedPdfItems.map((item, idx) => {
+        const typeBadge = item.docType === "Delivery Note"
+          ? "bg-indigo-100 text-indigo-800 border-indigo-200"
+          : "bg-sky-100 text-sky-800 border-sky-200";
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-3">
+              <div class="font-semibold text-slate-800 truncate max-w-[180px]" title="${item.fileName}">${item.fileName}</div>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${typeBadge}">${item.docType}</span>
+                <span class="text-[10px] text-slate-400">Hal ${item.pageNum}/${item.totalPages}</span>
+              </div>
+            </td>
+            <td class="py-2 px-3">
+              <input type="text" value="${item.docNo}" onchange="parsedPdfItems[${idx}].docNo = this.value.trim()"
+                class="w-full px-2 py-1 border border-slate-300 rounded font-mono text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </td>
+            <td class="py-2 px-3">
+              <input type="date" value="${item.dateIso}" onchange="parsedPdfItems[${idx}].dateIso = this.value"
+                class="px-2 py-1 border border-slate-300 rounded text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </td>
+            <td class="py-2 px-3">
+              <input type="text" value="${item.routeCode}" onchange="parsedPdfItems[${idx}].routeCode = this.value.trim()"
+                class="w-full px-2 py-1 border border-slate-300 rounded text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </td>
+            <td class="py-2 px-3 text-right">
+              <button type="button" onclick="openPdfViewer(${idx})"
+                class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[11px] font-bold transition">
+                Lihat PDF
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function openPdfViewer(idx) {
+      const item = parsedPdfItems[idx];
+      if (!item || !item.blobUrl) return;
+      const container = document.getElementById("pdfViewerContainer");
+      const frame = document.getElementById("pdfViewerFrame");
+      const title = document.getElementById("pdfViewerTitle");
+
+      title.textContent = `Pratinjau: ${item.fileName} (Halaman ${item.pageNum})`;
+      frame.src = `${item.blobUrl}#page=${item.pageNum}`;
+      container.classList.remove("hidden");
+    }
+
+    function closePdfViewer() {
+      const container = document.getElementById("pdfViewerContainer");
+      const frame = document.getElementById("pdfViewerFrame");
+      frame.src = "";
+      container.classList.add("hidden");
+    }
+
+    function clearPdfPreview() {
+      closePdfViewer();
+      parsedPdfItems.forEach(item => {
+        if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
+      });
+      parsedPdfItems = [];
+      document.getElementById("pdfPreviewPanel").classList.add("hidden");
+      document.getElementById("pdfReadStatus").classList.add("hidden");
+    }
+
+    function applyPdfPreviewToForm() {
+      if (parsedPdfItems.length === 0) return;
+
+      const firstWithDate = parsedPdfItems.find(i => i.dateIso);
+      const firstWithRoute = parsedPdfItems.find(i => i.routeCode);
+      const uniqueDocNos = [];
+      parsedPdfItems.forEach(i => {
+        if (i.docNo && !uniqueDocNos.includes(i.docNo)) {
+          uniqueDocNos.push(i.docNo);
+        }
+      });
+
+      // 1. Terapkan Tanggal Muat
+      if (firstWithDate && firstWithDate.dateIso) {
+        document.getElementById("tgl_muat").value = firstWithDate.dateIso;
+        updateDatePreview();
+      }
+
+      // 2. Terapkan Kode Rute & picu Master_Tarif
+      if (firstWithRoute && firstWithRoute.routeCode) {
+        const rawRoute = firstWithRoute.routeCode;
+        const custInput = document.getElementById("customer_input");
+        let matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === rawRoute.toLowerCase());
+        if (!matchedMaster) {
+          const baseRoute = rawRoute.split(/[\\\/]/)[0].trim().toLowerCase();
+          matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === baseRoute);
+        }
+        custInput.value = matchedMaster ? matchedMaster.customer : rawRoute;
+        document.getElementById("origin_input").value = "";
+        document.getElementById("destination_input").value = "";
+        updateRatePreview();
+      }
+
+      // 3. Terapkan Nomor Surat Jalan / DN
+      if (uniqueDocNos.length > 0) {
+        const sjContainer = document.getElementById("sjContainer");
+        sjContainer.innerHTML = "";
+        uniqueDocNos.forEach((docNo, idx) => {
+          const row = document.createElement("div");
+          row.className = "grid grid-cols-12 gap-2 items-center sj-row";
+          if (idx === 0) {
+            row.innerHTML = `
+              <div class="col-span-8">
+                <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN (Kosongkan jika menyusul)"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div class="col-span-4">
+                <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg (Opsional)"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            `;
+          } else {
+            row.innerHTML = `
+              <div class="col-span-7">
+                <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN berikutnya..."
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div class="col-span-3">
+                <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div class="col-span-2">
+                <button type="button" onclick="this.closest('.sj-row').remove()"
+                  class="w-full px-2 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">Hapus</button>
+              </div>
+            `;
+          }
+          sjContainer.appendChild(row);
+        });
+      }
+
+      const statusEl = document.getElementById("pdfReadStatus");
+      statusEl.classList.remove("hidden", "text-blue-700", "text-red-600");
+      statusEl.classList.add("text-emerald-700");
+      statusEl.textContent = `Data preview (${uniqueDocNos.length} No. SJ/DN) sudah diterapkan ke form! Silakan lengkapi Nopol/Driver lalu klik Simpan.`;
+    }
 
     document.getElementById("pinForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -943,7 +1070,7 @@
           alertEl.className = "text-sm font-semibold text-emerald-600";
           alertEl.textContent = `Berhasil! ${payload.data.no_spj} sudah tersimpan di Google Sheets.`;
           document.getElementById("orderForm").reset();
-          document.getElementById("pdfReadStatus").classList.add("hidden");
+          clearPdfPreview();
           setTodayDate();
           document.getElementById("uang_jalan_preview").value = "Rp 0";
           document.getElementById("tarif_jual_preview").value = "Rp 0";
