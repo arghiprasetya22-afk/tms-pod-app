@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Library SheetJS untuk Export Excel (.xlsx) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <!-- Library PDF.js untuk Pembacaan File PDF Trip Note & Delivery Note -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
 
@@ -65,6 +67,28 @@
     <!-- VIEW 1: INPUT ORDER -->
     <section id="viewOrder" class="max-w-4xl mx-auto p-6">
       <form id="orderForm" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+
+        <!-- KOTAK IMPORT OTOMATIS DARI PDF TRIP NOTE / DELIVERY NOTE -->
+        <div class="bg-blue-50/80 border-2 border-dashed border-blue-300 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase">Auto-Fill PDF</span>
+              <h3 class="text-sm font-bold text-slate-800">Import dari PDF Trip Note / Delivery Note</h3>
+            </div>
+            <p class="text-xs text-slate-600">
+              Mendukung <b>Regular Trip Note</b> (<i>Trip Note No, Delivery Date, Route</i>) &amp; <b>Delivery Note</b> (<i>DN No, Delivery Date, Material No</i>). Bisa pilih 1 atau beberapa file sekaligus.
+            </p>
+            <p id="pdfReadStatus" class="text-xs font-semibold text-blue-700 hidden"></p>
+          </div>
+          <div class="shrink-0">
+            <input type="file" id="pdfFileInput" accept="application/pdf" multiple class="hidden" />
+            <button type="button" onclick="document.getElementById('pdfFileInput').click()"
+              class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-2">
+              <span>&#128196; Pilih File PDF</span>
+            </button>
+          </div>
+        </div>
+
         <div>
           <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">1. Informasi Order & SPJ</h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -427,6 +451,11 @@
     // TEMPEL WEB APP URL APPS SCRIPT KAMU DI SINI:
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
 
+    // Konfigurasi PDF.js Worker
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
     let activePin = sessionStorage.getItem("tms_pod_pin") || "";
     let masterRoutes = [];
     let masterFleets = [];
@@ -455,6 +484,199 @@
     }
 
     document.getElementById("tgl_muat").addEventListener("change", updateDatePreview);
+
+    // --- PARSER PDF REGULAR TRIP NOTE & DELIVERY NOTE (MENDUKUNG MULTI-FILE) ---
+    const MONTH_MAP = {
+      jan: "01", feb: "02", mar: "03", apr: "04", may: "05", mei: "05",
+      jun: "06", jul: "07", aug: "08", agu: "08", sep: "09",
+      oct: "10", okt: "10", nov: "11", dec: "12", des: "12"
+    };
+
+    function parseTripNoteDateToIso(rawDate) {
+      if (!rawDate) return "";
+      const clean = rawDate.trim();
+      const mAlpha = clean.match(/(\d{1,2})[-\/\s]([A-Za-z]{3})[-\/\s](\d{4})/);
+      if (mAlpha) {
+        const dd = mAlpha[1].padStart(2, "0");
+        const mm = MONTH_MAP[mAlpha[2].toLowerCase()];
+        const yyyy = mAlpha[3];
+        if (mm) return `${yyyy}-${mm}-${dd}`;
+      }
+      const mNum = clean.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+      if (mNum) {
+        return `${mNum[3]}-${mNum[2].padStart(2, "0")}-${mNum[1].padStart(2, "0")}`;
+      }
+      return "";
+    }
+
+    document.getElementById("pdfFileInput").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+
+      const statusEl = document.getElementById("pdfReadStatus");
+      statusEl.classList.remove("hidden", "text-red-600", "text-emerald-700");
+      statusEl.classList.add("text-blue-700");
+      statusEl.textContent = `Membaca ${files.length} file PDF...`;
+
+      try {
+        let detectedTypes = new Set();
+        let extractedDocNumbers = [];
+        let extractedDeliveryDateIso = "";
+        let extractedRouteCode = "";
+        let totalPagesRead = 0;
+
+        for (const file of files) {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          totalPagesRead += pdf.numPages;
+
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(" ").replace(/\s+/g, " ");
+
+            const isDeliveryNoteFormat = /Delivery\s*Note/i.test(pageText) && /Material\s*No/i.test(pageText);
+
+            if (isDeliveryNoteFormat) {
+              detectedTypes.add("Delivery Note");
+
+              // 1. Pembacaan DN No -> No. SJ / DN
+              const dnMatch = pageText.match(/DN\s*No\s*:\s*([A-Z0-9\-\/]+)/i);
+              if (dnMatch && dnMatch[1]) {
+                const dnVal = dnMatch[1].trim();
+                if (!extractedDocNumbers.includes(dnVal)) {
+                  extractedDocNumbers.push(dnVal);
+                }
+              }
+
+              // 2. Pembacaan DELIVERY Date -> Tanggal Muat
+              if (!extractedDeliveryDateIso) {
+                const delivBlockMatch = pageText.match(/DELIVERY[\s\S]*?Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
+                const fallbackDateMatch = pageText.match(/Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
+                const rawDate = (delivBlockMatch && delivBlockMatch[1]) || (fallbackDateMatch && fallbackDateMatch[1]);
+                if (rawDate) {
+                  extractedDeliveryDateIso = parseTripNoteDateToIso(rawDate);
+                }
+              }
+
+              // 3. Pembacaan Material No -> Kode Rute
+              if (!extractedRouteCode) {
+                const matMatch = pageText.match(/Remarks\s+1\s+([A-Z0-9\-\_\/]+)\s+[A-Z0-9]+/i);
+                if (matMatch && matMatch[1]) {
+                  extractedRouteCode = matMatch[1].trim();
+                } else {
+                  const fallbackMat = pageText.match(/Material\s*No[\s\S]*?\b1\s+([A-Z0-9\-\_\/]{4,20})\b/i);
+                  if (fallbackMat && fallbackMat[1]) {
+                    extractedRouteCode = fallbackMat[1].trim();
+                  }
+                }
+              }
+
+            } else {
+              detectedTypes.add("Regular Trip Note");
+
+              // 1. Pembacaan Trip Note No -> No. SJ / DN
+              const tripNoteMatch = pageText.match(/Trip\s*Note\s*No\s*:\s*([A-Z0-9\-\/]+)/i);
+              if (tripNoteMatch && tripNoteMatch[1]) {
+                const tn = tripNoteMatch[1].trim();
+                if (!extractedDocNumbers.includes(tn)) {
+                  extractedDocNumbers.push(tn);
+                }
+              }
+
+              // 2. Pembacaan Delivery Date -> Tanggal Muat
+              if (!extractedDeliveryDateIso) {
+                const delivDateMatch = pageText.match(/Delivery\s*Date\s*:\s*([0-9]{1,2}[-\/\s][A-Za-z0-9]{2,3}[-\/\s][0-9]{4})/i);
+                if (delivDateMatch && delivDateMatch[1]) {
+                  extractedDeliveryDateIso = parseTripNoteDateToIso(delivDateMatch[1]);
+                }
+              }
+
+              // 3. Pembacaan Route -> Kode Rute
+              if (!extractedRouteCode) {
+                const routeMatch = pageText.match(/Route\s*:\s*([^\s]+)/i);
+                if (routeMatch && routeMatch[1]) {
+                  extractedRouteCode = routeMatch[1].trim();
+                }
+              }
+            }
+          }
+        }
+
+        // Isi otomatis Tanggal Muat
+        if (extractedDeliveryDateIso) {
+          document.getElementById("tgl_muat").value = extractedDeliveryDateIso;
+          updateDatePreview();
+        }
+
+        // Isi otomatis Kode Rute & picu pencocokan Master_Tarif
+        if (extractedRouteCode) {
+          const custInput = document.getElementById("customer_input");
+          let matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === extractedRouteCode.toLowerCase());
+          if (!matchedMaster) {
+            const baseRoute = extractedRouteCode.split(/[\\\/]/)[0].trim().toLowerCase();
+            matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === baseRoute);
+          }
+          custInput.value = matchedMaster ? matchedMaster.customer : extractedRouteCode;
+          document.getElementById("origin_input").value = "";
+          document.getElementById("destination_input").value = "";
+          updateRatePreview();
+        }
+
+        // Isi otomatis Nomor Surat Jalan / DN
+        if (extractedDocNumbers.length > 0) {
+          const sjContainer = document.getElementById("sjContainer");
+          sjContainer.innerHTML = "";
+          extractedDocNumbers.forEach((docNo, idx) => {
+            const row = document.createElement("div");
+            row.className = "grid grid-cols-12 gap-2 items-center sj-row";
+            if (idx === 0) {
+              row.innerHTML = `
+                <div class="col-span-8">
+                  <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN (Kosongkan jika menyusul)"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="col-span-4">
+                  <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg (Opsional)"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              `;
+            } else {
+              row.innerHTML = `
+                <div class="col-span-7">
+                  <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN berikutnya..."
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="col-span-3">
+                  <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="col-span-2">
+                  <button type="button" onclick="this.closest('.sj-row').remove()"
+                    class="w-full px-2 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">Hapus</button>
+                </div>
+              `;
+            }
+            sjContainer.appendChild(row);
+          });
+        }
+
+        if (extractedDocNumbers.length > 0 || extractedDeliveryDateIso || extractedRouteCode) {
+          const docLabel = Array.from(detectedTypes).join(" & ");
+          statusEl.classList.remove("text-blue-700");
+          statusEl.classList.add("text-emerald-700");
+          statusEl.textContent = `Berhasil membaca ${docLabel} (${files.length} file, ${totalPagesRead} hal): No. SJ/DN [${extractedDocNumbers.join(", ") || "-"}], Tgl [${extractedDeliveryDateIso || "-"}], Kode Rute [${extractedRouteCode || "-"}]`;
+        } else {
+          throw new Error("Pola kolom dokumen tidak ditemukan di file PDF ini.");
+        }
+      } catch (err) {
+        statusEl.classList.remove("text-blue-700");
+        statusEl.classList.add("text-red-600");
+        statusEl.textContent = "Gagal membaca PDF: " + err.message;
+      } finally {
+        e.target.value = "";
+      }
+    });
 
     document.getElementById("pinForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -721,6 +943,7 @@
           alertEl.className = "text-sm font-semibold text-emerald-600";
           alertEl.textContent = `Berhasil! ${payload.data.no_spj} sudah tersimpan di Google Sheets.`;
           document.getElementById("orderForm").reset();
+          document.getElementById("pdfReadStatus").classList.add("hidden");
           setTodayDate();
           document.getElementById("uang_jalan_preview").value = "Rp 0";
           document.getElementById("tarif_jual_preview").value = "Rp 0";
@@ -873,7 +1096,6 @@
       XLSX.writeFile(workbook, `Rekap_POD_${statusSuffix}_${today}.xlsx`);
     }
 
-    // --- KONTROL MODAL 1: EDIT DATA ORDER ---
     function openEditModal(item) {
       document.getElementById("edit_row_number").value = item.row_number;
       document.getElementById("editModalSubtitle").textContent = `${item.no_spj} | Baris Sheets #${item.row_number}`;
@@ -943,7 +1165,6 @@
       }
     });
 
-    // --- KONTROL MODAL 2: VERIFIKASI STATUS POD ---
     function openPodModal(item) {
       document.getElementById("pod_row_number").value = item.row_number;
       document.getElementById("podModalSubtitle").textContent = `${item.no_spj} | Baris Sheets #${item.row_number}`;
