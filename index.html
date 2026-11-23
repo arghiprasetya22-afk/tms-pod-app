@@ -77,7 +77,7 @@
                 <h3 class="text-sm font-bold text-slate-800">Import & Preview PDF Trip Note / Delivery Note</h3>
               </div>
               <p class="text-xs text-slate-600">
-                Mendukung <b>Regular Trip Note</b> (<i>Trip Note No, Delivery Date, Route</i>) &amp; <b>Delivery Note</b> (<i>DN No, Delivery Date, Material No</i>).
+                Mendukung <b>Regular Trip Note</b> (<i>Trip Note No, Delivery Date, Route</i>) &amp; <b>Delivery Note</b> (<i>DN No, Delivery Date, Material No</i>). Nomor yang sama otomatis digabung menjadi 1.
               </p>
               <p id="pdfReadStatus" class="text-xs font-semibold text-blue-700 hidden"></p>
             </div>
@@ -533,7 +533,7 @@
 
     document.getElementById("tgl_muat").addEventListener("change", updateDatePreview);
 
-    // --- PARSER & PREVIEW PDF REGULAR TRIP NOTE & DELIVERY NOTE ---
+    // --- PARSER & PREVIEW PDF REGULAR TRIP NOTE & DELIVERY NOTE (ANTI-DUPLIKAT) ---
     const MONTH_MAP = {
       jan: "01", feb: "02", mar: "03", apr: "04", may: "05", mei: "05",
       jun: "06", jul: "07", aug: "08", agu: "08", sep: "09",
@@ -557,12 +557,6 @@
       return "";
     }
 
-    function formatIsoToIndo(iso) {
-      if (!iso || !iso.includes("-")) return "-";
-      const [yyyy, mm, dd] = iso.split("-");
-      return `${dd}/${mm}/${yyyy}`;
-    }
-
     document.getElementById("pdfFileInput").addEventListener("change", async (e) => {
       const files = Array.from(e.target.files || []);
       if (files.length === 0) return;
@@ -572,17 +566,20 @@
       statusEl.classList.add("text-blue-700");
       statusEl.textContent = `Membaca ${files.length} file PDF...`;
 
-      // Bersihkan URL blob lama jika ada
       parsedPdfItems.forEach(item => {
         if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
       });
       parsedPdfItems = [];
+
+      const seenDocNos = new Set();
+      let totalPagesScanned = 0;
 
       try {
         for (const file of files) {
           const blobUrl = URL.createObjectURL(file);
           const arrayBuffer = await file.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          totalPagesScanned += pdf.numPages;
 
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
@@ -625,14 +622,35 @@
             }
 
             if (docNo || dateIso || routeCode) {
+              const normalizedKey = docNo.toUpperCase();
+
+              // Jika nomor Trip Note / DN sama sudah terbaca sebelumnya, gabungkan sebagai 1 baris unik
+              if (normalizedKey && seenDocNos.has(normalizedKey)) {
+                const existingItem = parsedPdfItems.find(it => it.docNo.toUpperCase() === normalizedKey);
+                if (existingItem) {
+                  existingItem.pageCount = (existingItem.pageCount || 1) + 1;
+                }
+                continue;
+              }
+
+              if (normalizedKey) {
+                seenDocNos.add(normalizedKey);
+              }
+
+              const alreadyInDb = normalizedKey
+                ? allOrders.some(o => (o.no_surat_jalan || "").trim().toUpperCase() === normalizedKey)
+                : false;
+
               parsedPdfItems.push({
                 fileName: file.name,
                 pageNum: pageNum,
+                pageCount: 1,
                 totalPages: pdf.numPages,
                 docType: docType,
                 docNo: docNo,
                 dateIso: dateIso,
                 routeCode: routeCode,
+                alreadyInDb: alreadyInDb,
                 blobUrl: blobUrl
               });
             }
@@ -646,7 +664,7 @@
         renderPdfPreviewPanel();
         statusEl.classList.remove("text-blue-700");
         statusEl.classList.add("text-emerald-700");
-        statusEl.textContent = `Selesai membaca ${parsedPdfItems.length} halaman dokumen dari ${files.length} file PDF. Silakan periksa hasil preview di bawah lalu klik "Terapkan ke Form Input".`;
+        statusEl.textContent = `Selesai membaca ${totalPagesScanned} halaman dari ${files.length} file PDF -> Ditemukan ${parsedPdfItems.length} No. Trip Note/DN unik (nomor kembar otomatis digabung menjadi 1).`;
       } catch (err) {
         document.getElementById("pdfPreviewPanel").classList.add("hidden");
         statusEl.classList.remove("text-blue-700");
@@ -667,18 +685,27 @@
           ? "bg-indigo-100 text-indigo-800 border-indigo-200"
           : "bg-sky-100 text-sky-800 border-sky-200";
 
+        const pageInfo = item.pageCount > 1
+          ? `Hal ${item.pageNum} (${item.pageCount} hal digabung)`
+          : `Hal ${item.pageNum}/${item.totalPages}`;
+
+        const dbWarning = item.alreadyInDb
+          ? `<div class="text-[10px] font-bold text-amber-700 mt-0.5">&#9888; Nomor ini sudah ada di Sheets</div>`
+          : "";
+
         return `
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-3">
               <div class="font-semibold text-slate-800 truncate max-w-[180px]" title="${item.fileName}">${item.fileName}</div>
-              <div class="flex items-center gap-1.5 mt-0.5">
+              <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
                 <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${typeBadge}">${item.docType}</span>
-                <span class="text-[10px] text-slate-400">Hal ${item.pageNum}/${item.totalPages}</span>
+                <span class="text-[10px] text-slate-500">${pageInfo}</span>
               </div>
             </td>
             <td class="py-2 px-3">
               <input type="text" value="${item.docNo}" onchange="parsedPdfItems[${idx}].docNo = this.value.trim()"
                 class="w-full px-2 py-1 border border-slate-300 rounded font-mono text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              ${dbWarning}
             </td>
             <td class="py-2 px-3">
               <input type="date" value="${item.dateIso}" onchange="parsedPdfItems[${idx}].dateIso = this.value"
@@ -734,9 +761,13 @@
       const firstWithDate = parsedPdfItems.find(i => i.dateIso);
       const firstWithRoute = parsedPdfItems.find(i => i.routeCode);
       const uniqueDocNos = [];
+      const seenApply = new Set();
+
       parsedPdfItems.forEach(i => {
-        if (i.docNo && !uniqueDocNos.includes(i.docNo)) {
-          uniqueDocNos.push(i.docNo);
+        const key = (i.docNo || "").trim().toUpperCase();
+        if (key && !seenApply.has(key)) {
+          seenApply.add(key);
+          uniqueDocNos.push(i.docNo.trim());
         }
       });
 
@@ -761,7 +792,7 @@
         updateRatePreview();
       }
 
-      // 3. Terapkan Nomor Surat Jalan / DN
+      // 3. Terapkan Nomor Surat Jalan / DN unik
       if (uniqueDocNos.length > 0) {
         const sjContainer = document.getElementById("sjContainer");
         sjContainer.innerHTML = "";
@@ -802,7 +833,7 @@
       const statusEl = document.getElementById("pdfReadStatus");
       statusEl.classList.remove("hidden", "text-blue-700", "text-red-600");
       statusEl.classList.add("text-emerald-700");
-      statusEl.textContent = `Data preview (${uniqueDocNos.length} No. SJ/DN) sudah diterapkan ke form! Silakan lengkapi Nopol/Driver lalu klik Simpan.`;
+      statusEl.textContent = `Data preview (${uniqueDocNos.length} No. SJ/DN unik) sudah diterapkan ke form! Silakan lengkapi Nopol/Driver lalu klik Simpan.`;
     }
 
     document.getElementById("pinForm").addEventListener("submit", async (e) => {
