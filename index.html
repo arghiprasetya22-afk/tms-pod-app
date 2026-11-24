@@ -40,7 +40,7 @@
       <div class="flex items-center gap-6">
         <div>
           <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
-          <p class="text-xs text-slate-400">Sistem Input SPJ, Kilogram & Kontrol Surat Jalan</p>
+          <p class="text-xs text-slate-400">Sistem Input SPJ (1 SPJ = 1 DN & Rute Mandiri), Kilogram & Kontrol POD</p>
         </div>
         <div class="flex gap-2 text-xs font-semibold">
           <button type="button" id="tabBtnOrder" onclick="switchTab('order')"
@@ -65,7 +65,7 @@
     </nav>
 
     <!-- VIEW 1: INPUT ORDER -->
-    <section id="viewOrder" class="max-w-4xl mx-auto p-6">
+    <section id="viewOrder" class="max-w-5xl mx-auto p-6">
       <form id="orderForm" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
 
         <!-- KOTAK IMPORT OTOMATIS & PREVIEW HASIL BACA PDF -->
@@ -77,7 +77,7 @@
                 <h3 class="text-sm font-bold text-slate-800">Import & Preview PDF Trip Note / Delivery Note</h3>
               </div>
               <p class="text-xs text-slate-600">
-                Mendukung <b>Regular Trip Note</b> (<i>Trip Note No, Delivery Date, Route</i>) &amp; <b>Delivery Note</b> (<i>DN No, Delivery Date, Material No</i>). Nomor yang sama otomatis digabung menjadi 1.
+                Mendukung banyak DN sekaligus meski <b>Kode Rute berbeda-beda</b>. Nomor DN kembar digabung menjadi 1, dan setiap DN unik mendapat <b>1 SPJ + Kode Rute masing-masing</b>.
               </p>
               <p id="pdfReadStatus" class="text-xs font-semibold text-blue-700 hidden"></p>
             </div>
@@ -90,12 +90,12 @@
             </div>
           </div>
 
-          <!-- PANEL PREVIEW HASIL PEMBACAAN PDF (MUNCUL OTOMATIS SETELAH UPLOAD) -->
+          <!-- PANEL PREVIEW HASIL PEMBACAAN PDF -->
           <div id="pdfPreviewPanel" class="hidden bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
             <div class="bg-slate-800 text-white px-4 py-2.5 flex flex-wrap justify-between items-center gap-2">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span class="text-xs font-bold">Preview Hasil Pembacaan PDF (Cek Sebelum Terapkan)</span>
+                <span class="text-xs font-bold">Preview Hasil Pembacaan PDF (1 SPJ = 1 DN & Kode Rute Mandiri)</span>
               </div>
               <div class="flex items-center gap-2">
                 <button type="button" onclick="clearPdfPreview()"
@@ -114,9 +114,10 @@
                 <thead>
                   <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
                     <th class="py-2 px-3">File & Jenis</th>
+                    <th class="py-2 px-3">Target No. SPJ</th>
                     <th class="py-2 px-3">No. SJ / DN (Bisa Diedit)</th>
                     <th class="py-2 px-3">Tanggal Muat</th>
-                    <th class="py-2 px-3">Kode Rute</th>
+                    <th class="py-2 px-3">Kode Rute DN Ini</th>
                     <th class="py-2 px-3 text-right">Dokumen</th>
                   </tr>
                 </thead>
@@ -124,7 +125,7 @@
               </table>
             </div>
 
-            <!-- FRAME PREVIEW DOKUMEN PDF ASLI (OPSIONAL SAAT DIKLIK "LIHAT PDF") -->
+            <!-- FRAME PREVIEW DOKUMEN PDF ASLI -->
             <div id="pdfViewerContainer" class="hidden border-t border-slate-200 bg-slate-100 p-3 space-y-2">
               <div class="flex justify-between items-center">
                 <span id="pdfViewerTitle" class="text-xs font-bold text-slate-700">Pratinjau Dokumen PDF</span>
@@ -136,29 +137,25 @@
           </div>
         </div>
 
+        <!-- BAGIAN 1: INFORMASI SPJ AWAL & DEFAULT -->
         <div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">1. Informasi Order & SPJ</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">1. Informasi SPJ Awal & Tanggal Default</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor SPJ (Otomatis Urut) *</label>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor SPJ Awal (Otomatis Urut) *</label>
               <input type="text" id="no_spj" required
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Muat (dd/mm/yyyy) *</label>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Muat Default (dd/mm/yyyy) *</label>
               <input type="date" id="tgl_muat" required
                 class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <p id="tglPreviewText" class="text-[11px] text-slate-500 mt-1">Format tersimpan: -</p>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Rute / Customer *</label>
-              <input list="customerList" id="customer_input" placeholder="Ketik atau pilih kode rute..." required
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <datalist id="customerList"></datalist>
-            </div>
           </div>
         </div>
 
+        <!-- BAGIAN 2: PENUGASAN ARMADA & DRIVER -->
         <div>
           <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">2. Penugasan Armada & Driver</h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -188,55 +185,22 @@
           </div>
         </div>
 
+        <!-- BAGIAN 3: RINCIAN BARIS SPJ, NO. DN, KODE RUTE & TARIF PER ITEM -->
         <div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">3. Detail Rute & Estimasi Tarif</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b pb-2">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat *</label>
-              <input type="text" id="origin_input" placeholder="Isi lokasi asal muat..." required
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">3. Rincian SPJ, No. DN & Kode Rute (Bisa Berbeda per DN)</h2>
+              <p class="text-[11px] text-slate-500">Setiap baris memiliki 1 No. SPJ, 1 No. DN, dan Kode Rute masing-masing (otomatis menarik Asal, Tujuan, Uang Jalan & Tarif Jual).</p>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar *</label>
-              <input type="text" id="destination_input" placeholder="Isi lokasi tujuan bongkar..." required
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Uang Jalan (Otomatis dari Master)</label>
-              <input type="text" id="uang_jalan_preview" readonly value="Rp 0"
-                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Tarif Jual (Otomatis dari Master)</label>
-              <input type="text" id="tarif_jual_preview" readonly value="Rp 0"
-                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-emerald-700" />
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="flex justify-between items-center mb-3 border-b pb-2">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">4. Nomor Surat Jalan (SJ / DN) & Kilogram</h2>
             <button type="button" id="addSjBtn"
               class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition">
-              + Tambah Nomor SJ
+              + Tambah Baris SPJ / DN
             </button>
           </div>
-          <div id="sjContainer" class="space-y-2">
-            <div class="grid grid-cols-12 gap-2 items-center sj-row">
-              <div class="col-span-8">
-                <input type="text" name="sj_no[]" placeholder="Nomor SJ / DN (Kosongkan jika menyusul)"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div class="col-span-4">
-                <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg (Opsional)"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-          </div>
+
+          <datalist id="customerList"></datalist>
+
+          <div id="sjContainer" class="space-y-3"></div>
         </div>
 
         <div class="pt-4 border-t flex items-center justify-between">
@@ -346,7 +310,7 @@
     </section>
   </div>
 
-  <!-- MODAL 1: EDIT DATA ORDER (Semua field kecuali Nomor SPJ) -->
+  <!-- MODAL 1: EDIT DATA ORDER -->
   <div id="editModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
     <div class="bg-white rounded-xl max-w-2xl w-full shadow-xl border border-slate-200 overflow-hidden my-6">
       <div class="bg-amber-600 text-white px-5 py-3.5 flex justify-between items-center">
@@ -430,7 +394,7 @@
     </div>
   </div>
 
-  <!-- MODAL 2: VERIFIKASI STATUS POD (Khusus Status GR & Keterangan Issue) -->
+  <!-- MODAL 2: VERIFIKASI STATUS POD -->
   <div id="podModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
     <div class="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden my-6">
       <div class="bg-emerald-700 text-white px-5 py-3.5 flex justify-between items-center">
@@ -498,7 +462,6 @@
     // TEMPEL WEB APP URL APPS SCRIPT KAMU DI SINI:
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
 
-    // Konfigurasi PDF.js Worker
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
     }
@@ -513,6 +476,7 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       setTodayDate();
+      resetSjContainerToSingleRow();
       if (activePin) verifyAndLoad(activePin);
     });
 
@@ -531,7 +495,164 @@
       }
     }
 
-    document.getElementById("tgl_muat").addEventListener("change", updateDatePreview);
+    document.getElementById("tgl_muat").addEventListener("change", () => {
+      updateDatePreview();
+      const defaultDate = document.getElementById("tgl_muat").value;
+      document.querySelectorAll('input[name="row_tgl[]"]').forEach(inp => {
+        if (!inp.dataset.customDate) inp.value = defaultDate;
+      });
+    });
+
+    function computeNextSpjCode(baseSpj, offset) {
+      const clean = (baseSpj || "SPJ20260001").trim();
+      const match = clean.match(/^(.*?)(\d+)$/);
+      if (!match) return offset === 0 ? clean : `${clean}-${offset + 1}`;
+      const prefix = match[1];
+      const numStr = match[2];
+      const nextNum = (parseInt(numStr, 10) + offset).toString().padStart(numStr.length, "0");
+      return `${prefix}${nextNum}`;
+    }
+
+    function syncAllRowSpjNumbers() {
+      const baseSpj = document.getElementById("no_spj").value.trim() || "SPJ20260001";
+      const spjRowInputs = document.querySelectorAll('input[name="row_spj[]"]');
+      spjRowInputs.forEach((inp, idx) => {
+        inp.value = computeNextSpjCode(baseSpj, idx);
+      });
+
+      const previewSpjTags = document.querySelectorAll(".preview-spj-badge");
+      previewSpjTags.forEach((el, idx) => {
+        el.textContent = computeNextSpjCode(baseSpj, idx);
+      });
+    }
+
+    document.getElementById("no_spj").addEventListener("input", syncAllRowSpjNumbers);
+
+    // Helper mencari data Master_Tarif berdasarkan Kode Rute & Jenis Armada
+    function resolveMasterRoute(rawRouteCode) {
+      if (!rawRouteCode) return null;
+      const clean = rawRouteCode.trim();
+      const vTypeVal = document.getElementById("vehicle_type").value.trim().toLowerCase();
+
+      let match = masterRoutes.find(r =>
+        r.customer.toLowerCase() === clean.toLowerCase() &&
+        r.vehicle_type.toLowerCase() === vTypeVal &&
+        vTypeVal !== ""
+      );
+      if (!match) {
+        match = masterRoutes.find(r => r.customer.toLowerCase() === clean.toLowerCase());
+      }
+      if (!match) {
+        const baseRoute = clean.split(/[\\\/]/)[0].trim().toLowerCase();
+        match = masterRoutes.find(r => r.customer.toLowerCase() === baseRoute);
+      }
+      return match || null;
+    }
+
+    // Membangun satu kartu baris SPJ + DN + Kode Rute Mandiri
+    function createSjRowElement(idx, preset = {}) {
+      const baseSpj = document.getElementById("no_spj").value.trim() || "SPJ20260001";
+      const assignedSpj = computeNextSpjCode(baseSpj, idx);
+      const defaultDate = preset.dateIso || document.getElementById("tgl_muat").value || "";
+      const isCustomDate = preset.dateIso ? "true" : "";
+
+      const matched = resolveMasterRoute(preset.routeCode || "");
+      const finalRoute = matched ? matched.customer : (preset.routeCode || "");
+      const asalVal = matched && matched.origin && !matched.origin.toUpperCase().startsWith("NONE") ? matched.origin : "";
+      const tujuanVal = matched && matched.destination && !matched.destination.toUpperCase().startsWith("NONE") ? matched.destination : "";
+      const ujVal = matched ? matched.uang_jalan : 0;
+      const tarifVal = matched ? matched.base_rate : 0;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "sj-row bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5";
+
+      wrapper.innerHTML = `
+        <div class="grid grid-cols-12 gap-2 items-end">
+          <div class="col-span-6 sm:col-span-2">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">No. SPJ</label>
+            <input type="text" name="row_spj[]" value="${assignedSpj}" readonly
+              class="w-full px-2.5 py-1.5 bg-slate-200/80 text-slate-800 border border-slate-300 rounded-lg text-xs font-mono font-bold" />
+          </div>
+          <div class="col-span-6 sm:col-span-3">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">No. Surat Jalan / DN *</label>
+            <input type="text" name="sj_no[]" value="${preset.docNo || ""}" placeholder="Nomor SJ / DN"
+              class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="col-span-6 sm:col-span-3">
+            <label class="block text-[10px] font-bold text-blue-700 uppercase mb-1">Kode Rute DN Ini *</label>
+            <input list="customerList" name="row_customer[]" value="${finalRoute}" oninput="onRowRouteChange(this)" placeholder="Pilih / ketik rute..." required
+              class="w-full px-2.5 py-1.5 bg-white border border-blue-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="col-span-6 sm:col-span-2">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tgl Muat</label>
+            <input type="date" name="row_tgl[]" value="${defaultDate}" data-custom-date="${isCustomDate}" onchange="this.dataset.customDate='true'"
+              class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="col-span-8 sm:col-span-1">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kg</label>
+            <input type="number" step="any" name="sj_kg[]" placeholder="0"
+              class="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="col-span-4 sm:col-span-1 text-right">
+            ${idx === 0
+              ? `<span class="inline-block px-2 py-1.5 text-[10px] font-bold text-slate-400">Utama</span>`
+              : `<button type="button" onclick="removeSjRow(this)" class="w-full px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">Hapus</button>`
+            }
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center pt-1.5 border-t border-slate-200/80 text-xs">
+          <div class="sm:col-span-3">
+            <input type="text" name="row_asal[]" value="${asalVal}" placeholder="Asal Muat *" required
+              class="w-full px-2.5 py-1 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <div class="sm:col-span-3">
+            <input type="text" name="row_tujuan[]" value="${tujuanVal}" placeholder="Tujuan Bongkar *" required
+              class="w-full px-2.5 py-1 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <div class="sm:col-span-6 flex flex-wrap items-center justify-end gap-3 text-[11px]">
+            <span class="text-slate-500">UJ: <b class="row-uj-label text-slate-700">Rp ${ujVal.toLocaleString("id-ID")}</b></span>
+            <span class="text-slate-500">Tarif: <b class="row-tarif-label text-emerald-700">Rp ${tarifVal.toLocaleString("id-ID")}</b></span>
+          </div>
+        </div>
+      `;
+      return wrapper;
+    }
+
+    function resetSjContainerToSingleRow() {
+      const sjContainer = document.getElementById("sjContainer");
+      sjContainer.innerHTML = "";
+      sjContainer.appendChild(createSjRowElement(0));
+    }
+
+    function onRowRouteChange(inputEl) {
+      const row = inputEl.closest(".sj-row");
+      const matched = resolveMasterRoute(inputEl.value);
+      const asalEl = row.querySelector('input[name="row_asal[]"]');
+      const tujuanEl = row.querySelector('input[name="row_tujuan[]"]');
+      const ujLabel = row.querySelector(".row-uj-label");
+      const tarifLabel = row.querySelector(".row-tarif-label");
+
+      if (matched) {
+        if (matched.origin && !matched.origin.toUpperCase().startsWith("NONE")) {
+          asalEl.value = matched.origin;
+        }
+        if (matched.destination && !matched.destination.toUpperCase().startsWith("NONE")) {
+          tujuanEl.value = matched.destination;
+        }
+        ujLabel.textContent = "Rp " + matched.uang_jalan.toLocaleString("id-ID");
+        tarifLabel.textContent = "Rp " + matched.base_rate.toLocaleString("id-ID");
+      } else {
+        ujLabel.textContent = "Rp 0";
+        tarifLabel.textContent = "Rp 0";
+      }
+    }
+
+    function refreshAllRowRates() {
+      document.querySelectorAll('input[name="row_customer[]"]').forEach(inp => {
+        if (inp.value.trim()) onRowRouteChange(inp);
+      });
+    }
 
     // --- PARSER & PREVIEW PDF REGULAR TRIP NOTE & DELIVERY NOTE (ANTI-DUPLIKAT) ---
     const MONTH_MAP = {
@@ -624,7 +745,6 @@
             if (docNo || dateIso || routeCode) {
               const normalizedKey = docNo.toUpperCase();
 
-              // Jika nomor Trip Note / DN sama sudah terbaca sebelumnya, gabungkan sebagai 1 baris unik
               if (normalizedKey && seenDocNos.has(normalizedKey)) {
                 const existingItem = parsedPdfItems.find(it => it.docNo.toUpperCase() === normalizedKey);
                 if (existingItem) {
@@ -664,7 +784,7 @@
         renderPdfPreviewPanel();
         statusEl.classList.remove("text-blue-700");
         statusEl.classList.add("text-emerald-700");
-        statusEl.textContent = `Selesai membaca ${totalPagesScanned} halaman dari ${files.length} file PDF -> Ditemukan ${parsedPdfItems.length} No. Trip Note/DN unik (nomor kembar otomatis digabung menjadi 1).`;
+        statusEl.textContent = `Selesai membaca ${totalPagesScanned} halaman dari ${files.length} file PDF -> Ditemukan ${parsedPdfItems.length} No. DN/Trip Note unik (masing-masing membawa Kode Rute & 1 SPJ tersendiri).`;
       } catch (err) {
         document.getElementById("pdfPreviewPanel").classList.add("hidden");
         statusEl.classList.remove("text-blue-700");
@@ -678,9 +798,11 @@
     function renderPdfPreviewPanel() {
       const panel = document.getElementById("pdfPreviewPanel");
       const tbody = document.getElementById("pdfPreviewBody");
+      const baseSpj = document.getElementById("no_spj").value.trim() || "SPJ20260001";
       panel.classList.remove("hidden");
 
       tbody.innerHTML = parsedPdfItems.map((item, idx) => {
+        const assignedSpj = computeNextSpjCode(baseSpj, idx);
         const typeBadge = item.docType === "Delivery Note"
           ? "bg-indigo-100 text-indigo-800 border-indigo-200"
           : "bg-sky-100 text-sky-800 border-sky-200";
@@ -696,11 +818,16 @@
         return `
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-3">
-              <div class="font-semibold text-slate-800 truncate max-w-[180px]" title="${item.fileName}">${item.fileName}</div>
-              <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+              <div class="font-semibold text-slate-800 truncate max-w-[160px]" title="${item.fileName}">${item.fileName}</div>
+              <div class="flex flex-wrap items-center gap-1 mt-0.5">
                 <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${typeBadge}">${item.docType}</span>
                 <span class="text-[10px] text-slate-500">${pageInfo}</span>
               </div>
+            </td>
+            <td class="py-2 px-3">
+              <span class="preview-spj-badge px-2 py-1 rounded bg-blue-50 text-blue-800 border border-blue-200 font-mono font-bold text-xs">
+                ${assignedSpj}
+              </span>
             </td>
             <td class="py-2 px-3">
               <input type="text" value="${item.docNo}" onchange="parsedPdfItems[${idx}].docNo = this.value.trim()"
@@ -712,8 +839,8 @@
                 class="px-2 py-1 border border-slate-300 rounded text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </td>
             <td class="py-2 px-3">
-              <input type="text" value="${item.routeCode}" onchange="parsedPdfItems[${idx}].routeCode = this.value.trim()"
-                class="w-full px-2 py-1 border border-slate-300 rounded text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              <input list="customerList" type="text" value="${item.routeCode}" onchange="parsedPdfItems[${idx}].routeCode = this.value.trim()"
+                class="w-full px-2 py-1 border border-blue-300 rounded text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </td>
             <td class="py-2 px-3 text-right">
               <button type="button" onclick="openPdfViewer(${idx})"
@@ -759,81 +886,32 @@
       if (parsedPdfItems.length === 0) return;
 
       const firstWithDate = parsedPdfItems.find(i => i.dateIso);
-      const firstWithRoute = parsedPdfItems.find(i => i.routeCode);
-      const uniqueDocNos = [];
-      const seenApply = new Set();
-
-      parsedPdfItems.forEach(i => {
-        const key = (i.docNo || "").trim().toUpperCase();
-        if (key && !seenApply.has(key)) {
-          seenApply.add(key);
-          uniqueDocNos.push(i.docNo.trim());
-        }
-      });
-
-      // 1. Terapkan Tanggal Muat
       if (firstWithDate && firstWithDate.dateIso) {
         document.getElementById("tgl_muat").value = firstWithDate.dateIso;
         updateDatePreview();
       }
 
-      // 2. Terapkan Kode Rute & picu Master_Tarif
-      if (firstWithRoute && firstWithRoute.routeCode) {
-        const rawRoute = firstWithRoute.routeCode;
-        const custInput = document.getElementById("customer_input");
-        let matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === rawRoute.toLowerCase());
-        if (!matchedMaster) {
-          const baseRoute = rawRoute.split(/[\\\/]/)[0].trim().toLowerCase();
-          matchedMaster = masterRoutes.find(r => r.customer.toLowerCase() === baseRoute);
-        }
-        custInput.value = matchedMaster ? matchedMaster.customer : rawRoute;
-        document.getElementById("origin_input").value = "";
-        document.getElementById("destination_input").value = "";
-        updateRatePreview();
-      }
+      const sjContainer = document.getElementById("sjContainer");
+      sjContainer.innerHTML = "";
 
-      // 3. Terapkan Nomor Surat Jalan / DN unik
-      if (uniqueDocNos.length > 0) {
-        const sjContainer = document.getElementById("sjContainer");
-        sjContainer.innerHTML = "";
-        uniqueDocNos.forEach((docNo, idx) => {
-          const row = document.createElement("div");
-          row.className = "grid grid-cols-12 gap-2 items-center sj-row";
-          if (idx === 0) {
-            row.innerHTML = `
-              <div class="col-span-8">
-                <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN (Kosongkan jika menyusul)"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div class="col-span-4">
-                <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg (Opsional)"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            `;
-          } else {
-            row.innerHTML = `
-              <div class="col-span-7">
-                <input type="text" name="sj_no[]" value="${docNo}" placeholder="Nomor SJ / DN berikutnya..."
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div class="col-span-3">
-                <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div class="col-span-2">
-                <button type="button" onclick="this.closest('.sj-row').remove()"
-                  class="w-full px-2 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">Hapus</button>
-              </div>
-            `;
-          }
-          sjContainer.appendChild(row);
+      parsedPdfItems.forEach((item, idx) => {
+        const rowEl = createSjRowElement(idx, {
+          docNo: item.docNo,
+          dateIso: item.dateIso,
+          routeCode: item.routeCode
         });
-      }
+        sjContainer.appendChild(rowEl);
+      });
 
       const statusEl = document.getElementById("pdfReadStatus");
       statusEl.classList.remove("hidden", "text-blue-700", "text-red-600");
       statusEl.classList.add("text-emerald-700");
-      statusEl.textContent = `Data preview (${uniqueDocNos.length} No. SJ/DN unik) sudah diterapkan ke form! Silakan lengkapi Nopol/Driver lalu klik Simpan.`;
+      statusEl.textContent = `Diterapkan ${parsedPdfItems.length} baris SPJ & DN beserta Kode Rute masing-masing! Lengkapi Nopol/Driver lalu klik Simpan.`;
+    }
+
+    function removeSjRow(btn) {
+      btn.closest(".sj-row").remove();
+      syncAllRowSpjNumbers();
     }
 
     document.getElementById("pinForm").addEventListener("submit", async (e) => {
@@ -905,9 +983,11 @@
 
           if (json.next_spj) {
             document.getElementById("no_spj").value = json.next_spj;
+            syncAllRowSpjNumbers();
           }
 
           populateDropdowns();
+          refreshAllRowRates();
           document.getElementById("kpiTotal").textContent = (json.summary?.total || 0).toLocaleString("id-ID");
           document.getElementById("kpiBelum").textContent = (json.summary?.belum_kembali || 0).toLocaleString("id-ID");
           document.getElementById("kpiSjAda").textContent = (json.summary?.sj_ada || 0).toLocaleString("id-ID");
@@ -967,42 +1047,7 @@
       });
     }
 
-    function updateRatePreview() {
-      const custVal = document.getElementById("customer_input").value.trim().toLowerCase();
-      const vTypeVal = document.getElementById("vehicle_type").value.trim().toLowerCase();
-
-      let match = masterRoutes.find(r =>
-        r.customer.toLowerCase() === custVal &&
-        r.vehicle_type.toLowerCase() === vTypeVal &&
-        vTypeVal !== ""
-      );
-
-      if (!match) {
-        match = masterRoutes.find(r => r.customer.toLowerCase() === custVal);
-      }
-
-      if (match) {
-        document.getElementById("uang_jalan_preview").value = "Rp " + match.uang_jalan.toLocaleString("id-ID");
-        document.getElementById("tarif_jual_preview").value = "Rp " + match.base_rate.toLocaleString("id-ID");
-        if (match.origin && !match.origin.toUpperCase().startsWith("NONE") && !document.getElementById("origin_input").value) {
-          document.getElementById("origin_input").value = match.origin;
-        }
-        if (match.destination && !match.destination.toUpperCase().startsWith("NONE") && !document.getElementById("destination_input").value) {
-          document.getElementById("destination_input").value = match.destination;
-        }
-      } else {
-        document.getElementById("uang_jalan_preview").value = "Rp 0";
-        document.getElementById("tarif_jual_preview").value = "Rp 0";
-      }
-    }
-
-    document.getElementById("customer_input").addEventListener("input", () => {
-      document.getElementById("origin_input").value = "";
-      document.getElementById("destination_input").value = "";
-      updateRatePreview();
-    });
-
-    document.getElementById("vehicle_type").addEventListener("input", updateRatePreview);
+    document.getElementById("vehicle_type").addEventListener("input", refreshAllRowRates);
 
     document.getElementById("nopol_input").addEventListener("input", (e) => {
       const val = e.target.value.trim().toUpperCase();
@@ -1010,7 +1055,7 @@
       if (fleet) {
         if (fleet.vehicle_type) document.getElementById("vehicle_type").value = fleet.vehicle_type;
         if (fleet.driver_name) document.getElementById("driver_name").value = fleet.driver_name;
-        updateRatePreview();
+        refreshAllRowRates();
       }
     });
 
@@ -1038,77 +1083,87 @@
 
     document.getElementById("addSjBtn").addEventListener("click", () => {
       const container = document.getElementById("sjContainer");
-      const row = document.createElement("div");
-      row.className = "grid grid-cols-12 gap-2 items-center sj-row";
-      row.innerHTML = `
-        <div class="col-span-7">
-          <input type="text" name="sj_no[]" placeholder="Nomor SJ / DN berikutnya..."
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div class="col-span-3">
-          <input type="number" step="any" name="sj_kg[]" placeholder="Berat Kg"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div class="col-span-2">
-          <button type="button" onclick="this.closest('.sj-row').remove()"
-            class="w-full px-2 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold border border-red-200">Hapus</button>
-        </div>
-      `;
-      container.appendChild(row);
+      const nextIdx = container.querySelectorAll(".sj-row").length;
+      container.appendChild(createSjRowElement(nextIdx));
     });
 
+    // SIMPAN ORDER: 1 SPJ = 1 NO. DN DENGAN KODE RUTE & TARIF MASING-MASING
     document.getElementById("orderForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = document.getElementById("submitBtn");
       const alertEl = document.getElementById("formAlert");
 
-      const sjInputs = document.querySelectorAll('input[name="sj_no[]"]');
-      const kgInputs = document.querySelectorAll('input[name="sj_kg[]"]');
-      const sjList = Array.from(sjInputs).map((inp, idx) => ({
-        sj_no: inp.value.trim() || "MENYUSUL",
-        kilogram: kgInputs[idx] ? kgInputs[idx].value.trim() : ""
-      }));
+      const rowEls = document.querySelectorAll("#sjContainer .sj-row");
+      const orderItems = Array.from(rowEls).map((row, idx) => {
+        const spjVal = row.querySelector('input[name="row_spj[]"]').value.trim() || computeNextSpjCode(document.getElementById("no_spj").value.trim(), idx);
+        const sjVal = row.querySelector('input[name="sj_no[]"]').value.trim() || "MENYUSUL";
+        const custVal = row.querySelector('input[name="row_customer[]"]').value.trim();
+        const tglVal = row.querySelector('input[name="row_tgl[]"]').value || document.getElementById("tgl_muat").value;
+        const kgVal = row.querySelector('input[name="sj_kg[]"]').value.trim();
+        const asalVal = row.querySelector('input[name="row_asal[]"]').value.trim();
+        const tujuanVal = row.querySelector('input[name="row_tujuan[]"]').value.trim();
 
-      const payload = {
-        pin: activePin,
-        action: "CREATE_ORDER",
-        data: {
-          no_spj: document.getElementById("no_spj").value.trim(),
-          tgl_muat: document.getElementById("tgl_muat").value,
-          customer: document.getElementById("customer_input").value.trim(),
-          asal: document.getElementById("origin_input").value.trim(),
-          tujuan: document.getElementById("destination_input").value.trim(),
-          nopol: document.getElementById("nopol_input").value.trim().toUpperCase(),
-          jenis_armada: document.getElementById("vehicle_type").value.trim(),
-          nama_driver: document.getElementById("driver_name").value.trim(),
-          surat_jalan_list: sjList
-        }
+        return {
+          no_spj: spjVal,
+          tgl_muat: tglVal,
+          customer: custVal,
+          asal: asalVal,
+          tujuan: tujuanVal,
+          sj_no: sjVal,
+          kilogram: kgVal
+        };
+      });
+
+      const armadaData = {
+        nopol: document.getElementById("nopol_input").value.trim().toUpperCase(),
+        jenis_armada: document.getElementById("vehicle_type").value.trim(),
+        nama_driver: document.getElementById("driver_name").value.trim()
       };
 
       btn.disabled = true;
-      btn.textContent = "Menyimpan ke Sheets...";
       alertEl.textContent = "";
 
       try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload)
-        });
-        const result = await response.json();
+        const savedSpjList = [];
+        for (let i = 0; i < orderItems.length; i++) {
+          const item = orderItems[i];
+          btn.textContent = `Menyimpan ${item.no_spj} (${i + 1}/${orderItems.length})...`;
 
-        if (result.status === "success") {
-          alertEl.className = "text-sm font-semibold text-emerald-600";
-          alertEl.textContent = `Berhasil! ${payload.data.no_spj} sudah tersimpan di Google Sheets.`;
-          document.getElementById("orderForm").reset();
-          clearPdfPreview();
-          setTodayDate();
-          document.getElementById("uang_jalan_preview").value = "Rp 0";
-          document.getElementById("tarif_jual_preview").value = "Rp 0";
-          await loadAllData(activePin);
-        } else {
-          throw new Error(result.message);
+          const payload = {
+            pin: activePin,
+            action: "CREATE_ORDER",
+            data: {
+              no_spj: item.no_spj,
+              tgl_muat: item.tgl_muat,
+              customer: item.customer,
+              asal: item.asal,
+              tujuan: item.tujuan,
+              ...armadaData,
+              surat_jalan_list: [{ sj_no: item.sj_no, kilogram: item.kilogram }]
+            }
+          };
+
+          const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+
+          if (result.status !== "success") {
+            throw new Error(`Gagal pada ${item.no_spj}: ${result.message}`);
+          }
+          savedSpjList.push(item.no_spj);
         }
+
+        alertEl.className = "text-sm font-semibold text-emerald-600";
+        alertEl.textContent = `Berhasil! ${savedSpjList.join(", ")} (masing-masing sesuai Kode Rute DN) tersimpan di Google Sheets.`;
+
+        document.getElementById("orderForm").reset();
+        clearPdfPreview();
+        setTodayDate();
+        resetSjContainerToSingleRow();
+        await loadAllData(activePin);
       } catch (err) {
         alertEl.className = "text-sm font-semibold text-red-600";
         alertEl.textContent = "Gagal menyimpan: " + err.message;
