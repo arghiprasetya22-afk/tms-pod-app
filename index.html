@@ -190,7 +190,7 @@
           <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b pb-2">
             <div>
               <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">3. Rincian SPJ, No. DN & Kode Rute (Bisa Berbeda per DN)</h2>
-              <p class="text-[11px] text-slate-500">Setiap baris memiliki 1 No. SPJ, 1 No. DN, dan Kode Rute masing-masing (otomatis menarik Asal, Tujuan, Uang Jalan & Tarif Jual).</p>
+              <p class="text-[11px] text-slate-500">Setiap baris memiliki 1 No. SPJ, 1 No. DN, dan Kode Rute masing-masing. Asal Muat & Tujuan Bongkar bersifat opsional.</p>
             </div>
             <button type="button" id="addSjBtn"
               class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition">
@@ -344,13 +344,13 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat</label>
-            <input type="text" id="edit_asal" placeholder="Asal muat..."
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat (Opsional)</label>
+            <input type="text" id="edit_asal" placeholder="Asal muat (bisa dikosongkan)..."
               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar</label>
-            <input type="text" id="edit_tujuan" placeholder="Tujuan bongkar..."
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar (Opsional)</label>
+            <input type="text" id="edit_tujuan" placeholder="Tujuan bongkar (bisa dikosongkan)..."
               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500" />
           </div>
         </div>
@@ -549,7 +549,7 @@
       return match || null;
     }
 
-    // Membangun satu kartu baris SPJ + DN + Kode Rute Mandiri
+    // Membangun satu kartu baris SPJ + DN + Kode Rute Mandiri (Asal & Tujuan Opsional)
     function createSjRowElement(idx, preset = {}) {
       const baseSpj = document.getElementById("no_spj").value.trim() || "SPJ20260001";
       const assignedSpj = computeNextSpjCode(baseSpj, idx);
@@ -603,11 +603,11 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center pt-1.5 border-t border-slate-200/80 text-xs">
           <div class="sm:col-span-3">
-            <input type="text" name="row_asal[]" value="${asalVal}" placeholder="Asal Muat *" required
+            <input type="text" name="row_asal[]" value="${asalVal}" placeholder="Asal Muat (Opsional)"
               class="w-full px-2.5 py-1 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
           <div class="sm:col-span-3">
-            <input type="text" name="row_tujuan[]" value="${tujuanVal}" placeholder="Tujuan Bongkar *" required
+            <input type="text" name="row_tujuan[]" value="${tujuanVal}" placeholder="Tujuan Bongkar (Opsional)"
               class="w-full px-2.5 py-1 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
           <div class="sm:col-span-6 flex flex-wrap items-center justify-end gap-3 text-[11px]">
@@ -1087,7 +1087,7 @@
       container.appendChild(createSjRowElement(nextIdx));
     });
 
-    // SIMPAN ORDER: 1 SPJ = 1 NO. DN DENGAN KODE RUTE & TARIF MASING-MASING
+    // SIMPAN ORDER: 1 SPJ = 1 NO. DN DENGAN KODE RUTE & TARIF MASING-MASING (ASAL & TUJUAN OPSIONAL)
     document.getElementById("orderForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = document.getElementById("submitBtn");
@@ -1157,7 +1157,7 @@
         }
 
         alertEl.className = "text-sm font-semibold text-emerald-600";
-        alertEl.textContent = `Berhasil! ${savedSpjList.join(", ")} (masing-masing sesuai Kode Rute DN) tersimpan di Google Sheets.`;
+        alertEl.textContent = `Berhasil! ${savedSpjList.join(", ")} tersimpan di Google Sheets.`;
 
         document.getElementById("orderForm").reset();
         clearPdfPreview();
