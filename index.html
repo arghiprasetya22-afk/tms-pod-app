@@ -12,7 +12,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
 
-  <!-- LAYAR KUNCI PIN (PIN: 2026) -->
+  <!-- LAYAR KUNCI PIN -->
   <div id="pinOverlay" class="fixed inset-0 bg-slate-900 flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-5">
       <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto font-bold text-xl">
@@ -323,7 +323,7 @@
                 <th class="py-3 px-4">Kode Rute & Lokasi</th>
                 <th class="py-3 px-4">Armada & Driver</th>
                 <th class="py-3 px-4">No. SJ / DN & Kg</th>
-                <th class="py-3 px-4">Status GR & Keterangan</th>
+                <th class="py-3 px-4">Status GR, Keterangan & Jejak Ubah</th>
                 <th class="py-3 px-4 text-right">Aksi</th>
               </tr>
             </thead>
@@ -581,6 +581,10 @@
             <span class="text-slate-500">Customer / Rute:</span>
             <span id="pod_info_customer" class="font-semibold text-slate-800">-</span>
           </div>
+          <div class="flex justify-between pt-1 border-t border-slate-200/80">
+            <span class="text-slate-500">Terakhir Diubah:</span>
+            <span id="pod_info_last_updated" class="font-semibold text-slate-700">-</span>
+          </div>
         </div>
 
         <div>
@@ -693,6 +697,16 @@
       resetSjContainerToSingleRow();
       if (activePin) verifyAndLoad(activePin);
     });
+
+    function formatNowTimestamp() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const min = String(now.getMinutes()).padStart(2, "0");
+      return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    }
 
     function setTodayDate() {
       const el = document.getElementById("tgl_muat");
@@ -1514,6 +1528,9 @@
         const kgDisplay = (item.kilogram !== "" && item.kilogram !== null && item.kilogram !== undefined)
           ? `<div class="text-[11px] font-semibold text-blue-700 mt-0.5">${Number(item.kilogram).toLocaleString("id-ID")} Kg</div>`
           : `<div class="text-[11px] text-slate-400 mt-0.5">- Kg</div>`;
+        const lastUpdatedBadge = item.last_updated
+          ? `<div class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] font-medium text-slate-600">&#128337; Diubah: <b>${item.last_updated}</b></div>`
+          : "";
         const itemJson = JSON.stringify(item).replace(/'/g, "&#39;");
 
         return `
@@ -1535,8 +1552,9 @@
               ${kgDisplay}
             </td>
             <td class="py-3 px-4">
-              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">${item.status_gr}</span>
+              <div><span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">${item.status_gr}</span></div>
               ${item.keterangan_issue ? `<div class="text-[11px] text-red-600 mt-1 max-w-xs">${item.keterangan_issue}</div>` : ""}
+              ${lastUpdatedBadge}
             </td>
             <td class="py-3 px-4 text-right">
               <div class="inline-flex items-center gap-1.5">
@@ -1575,6 +1593,7 @@
         "Kilogram": item.kilogram !== "" ? Number(item.kilogram) : "",
         "Status_GR": item.status_gr,
         "Keterangan_Issue": item.keterangan_issue,
+        "Terakhir_Diubah": item.last_updated || "",
         "Uang_Jalan": item.uang_jalan || 0,
         "Tarif_Jual": item.tarif_jual || 0
       }));
@@ -1854,11 +1873,14 @@
       btn.disabled = true;
       btn.textContent = "Menyimpan...";
 
+      const rowNumber = Number(document.getElementById("edit_row_number").value);
+      const updatedTimestamp = formatNowTimestamp();
+
       const payload = {
         pin: activePin,
         action: "UPDATE_POD",
         data: {
-          row_number: Number(document.getElementById("edit_row_number").value),
+          row_number: rowNumber,
           tgl_muat: document.getElementById("edit_tgl_muat").value,
           customer: document.getElementById("edit_customer").value.trim(),
           asal: document.getElementById("edit_asal").value.trim(),
@@ -1867,7 +1889,8 @@
           jenis_armada: document.getElementById("edit_jenis_armada").value.trim(),
           nama_driver: document.getElementById("edit_nama_driver").value.trim(),
           no_surat_jalan: document.getElementById("edit_sj_no").value.trim(),
-          kilogram: document.getElementById("edit_kilogram").value.trim()
+          kilogram: document.getElementById("edit_kilogram").value.trim(),
+          last_updated: updatedTimestamp
         }
       };
 
@@ -1881,6 +1904,11 @@
         if (result.status === "success") {
           closeEditModal();
           await loadAllData(activePin);
+          const target = allOrders.find(o => Number(o.row_number) === rowNumber);
+          if (target && !target.last_updated) {
+            target.last_updated = updatedTimestamp;
+            renderTable();
+          }
         } else {
           throw new Error(result.message);
         }
@@ -1898,6 +1926,7 @@
       document.getElementById("pod_info_spj").textContent = item.no_spj || "-";
       document.getElementById("pod_info_sj").textContent = item.no_surat_jalan || "-";
       document.getElementById("pod_info_customer").textContent = item.customer || "-";
+      document.getElementById("pod_info_last_updated").textContent = item.last_updated || "Belum pernah diubah";
       document.getElementById("pod_status_gr").value = item.status_gr || "BELUM KEMBALI";
       document.getElementById("pod_keterangan_issue").value = item.keterangan_issue || "";
       document.getElementById("quickIssueSelect").value = "";
@@ -1931,14 +1960,18 @@
       btn.disabled = true;
       btn.textContent = "Menyimpan...";
 
+      const rowNumber = Number(document.getElementById("pod_row_number").value);
       const statusGr = document.getElementById("pod_status_gr").value;
+      const updatedTimestamp = formatNowTimestamp();
+
       const payload = {
         pin: activePin,
         action: "UPDATE_POD",
         data: {
-          row_number: Number(document.getElementById("pod_row_number").value),
+          row_number: rowNumber,
           status_gr: statusGr,
-          keterangan_issue: statusGr === "OPEN GR" ? document.getElementById("pod_keterangan_issue").value.trim() : ""
+          keterangan_issue: statusGr === "OPEN GR" ? document.getElementById("pod_keterangan_issue").value.trim() : "",
+          last_updated: updatedTimestamp
         }
       };
 
@@ -1952,6 +1985,11 @@
         if (result.status === "success") {
           closePodModal();
           await loadAllData(activePin);
+          const target = allOrders.find(o => Number(o.row_number) === rowNumber);
+          if (target && !target.last_updated) {
+            target.last_updated = updatedTimestamp;
+            renderTable();
+          }
         } else {
           throw new Error(result.message);
         }
