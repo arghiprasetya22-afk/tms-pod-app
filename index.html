@@ -40,7 +40,7 @@
       <div class="flex flex-wrap items-center gap-6">
         <div>
           <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
-          <p class="text-xs text-slate-400">Input SPJ (1 SPJ = 1 DN), Verifikasi POD & Rekap Penagihan</p>
+          <p class="text-xs text-slate-400">Input SPJ (1 SPJ = 1 DN), Verifikasi POD, Penagihan & Master Data</p>
         </div>
         <div class="flex flex-wrap gap-2 text-xs font-semibold">
           <button type="button" id="tabBtnOrder" onclick="switchTab('order')"
@@ -55,6 +55,10 @@
             class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex items-center gap-1.5">
             <span>Rekap Penagihan (OK GR)</span>
             <span id="navBillingBadge" class="px-1.5 py-0.2 bg-emerald-500 text-slate-950 rounded-full text-[10px] font-extrabold">0</span>
+          </button>
+          <button type="button" id="tabBtnMaster" onclick="switchTab('master')"
+            class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            Master Data
           </button>
         </div>
       </div>
@@ -216,7 +220,7 @@
       </form>
     </section>
 
-    <!-- VIEW 2: VERIFIKASI POD -->
+    <!-- VIEW 2: VERIFIKASI POD (DENGAN BULK UPDATE & REMINDER AGING) -->
     <section id="viewPod" class="hidden max-w-7xl mx-auto p-6 space-y-5">
       <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
         <div onclick="setFilter('ALL')" class="cursor-pointer bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
@@ -245,6 +249,26 @@
         </div>
       </div>
 
+      <!-- BAR AKSI BULK UPDATE POD (MUNCUL SAAT ADA ITEM DICENTANG) -->
+      <div id="bulkPodActionBar" class="hidden bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-4 border border-slate-700">
+        <div class="flex items-center gap-4">
+          <span class="px-3 py-1 bg-amber-500 text-slate-950 font-extrabold text-xs rounded-full">
+            <span id="selectedPodCount">0</span> Item POD Dipilih
+          </span>
+          <p class="text-xs text-slate-300">Ubah status GR secara serentak untuk seluruh baris yang dicentang.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="clearPodSelection()"
+            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-semibold transition">
+            Batal Pilih
+          </button>
+          <button type="button" onclick="openBulkPodModal()"
+            class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-sm transition">
+            Update Status POD Massal
+          </button>
+        </div>
+      </div>
+
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
         <div class="flex flex-wrap justify-between items-center gap-2">
           <div class="flex flex-wrap gap-1.5 items-center">
@@ -270,7 +294,7 @@
           </div>
         </div>
 
-        <!-- BAR FILTER RENTANG TANGGAL MUAT (POD) -->
+        <!-- BAR FILTER RENTANG TANGGAL & AGING KETERLAMBATAN -->
         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/80 flex flex-wrap items-end justify-between gap-3">
           <div class="flex flex-wrap items-end gap-3">
             <div>
@@ -282,6 +306,15 @@
               <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sampai Tanggal Muat</label>
               <input type="date" id="podDateEnd" onchange="renderTable()"
                 class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reminder Aging (Belum OK GR)</label>
+              <select id="podAgingFilter" onchange="renderTable()"
+                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="ALL">Semua Umur Trip</option>
+                <option value="OVER_3">Terlambat &gt; 3 Hari (Follow-Up)</option>
+                <option value="OVER_7">Terlambat &gt; 7 Hari (Kritis)</option>
+              </select>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-1.5">
@@ -319,11 +352,15 @@
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
+                <th class="py-3 px-3 w-10 text-center">
+                  <input type="checkbox" id="selectAllPodChk" onchange="toggleSelectAllPod(this)"
+                    class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                </th>
                 <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
                 <th class="py-3 px-4">Kode Rute & Lokasi</th>
                 <th class="py-3 px-4">Armada & Driver</th>
                 <th class="py-3 px-4">No. SJ / DN & Kg</th>
-                <th class="py-3 px-4">Status GR, Keterangan & Jejak Ubah</th>
+                <th class="py-3 px-4">Status GR, Aging & Jejak Ubah</th>
                 <th class="py-3 px-4 text-right">Aksi</th>
               </tr>
             </thead>
@@ -335,7 +372,6 @@
 
     <!-- VIEW 3: REKAP PENAGIHAN (OTOMATIS DARI OK GR) -->
     <section id="viewBilling" class="hidden max-w-7xl mx-auto p-6 space-y-5">
-      <!-- KPI Penagihan -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div onclick="setBillingFilter('ALL')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
           <p class="text-[11px] font-semibold text-slate-500 uppercase">Total Siap Ditagih (OK GR)</p>
@@ -355,7 +391,6 @@
         </div>
       </div>
 
-      <!-- Bar Aksi Batch Penagihan -->
       <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-6">
           <div>
@@ -383,7 +418,6 @@
         </div>
       </div>
 
-      <!-- Panel Filter Rekap Penagihan -->
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
         <div class="flex flex-wrap justify-between items-center gap-2">
           <div class="flex flex-wrap gap-1.5 items-center">
@@ -404,7 +438,6 @@
           </div>
         </div>
 
-        <!-- BAR FILTER RENTANG TANGGAL MUAT (PENAGIHAN) -->
         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/80 flex flex-wrap items-end justify-between gap-3">
           <div class="flex flex-wrap items-end gap-3">
             <div>
@@ -447,7 +480,6 @@
         </div>
       </div>
 
-      <!-- Tabel Rekap Penagihan -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
@@ -467,6 +499,159 @@
             </thead>
             <tbody id="billingTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: MANAJEMEN MASTER DATA (MASTER_TARIF & MASTER_ARMADA) -->
+    <section id="viewMaster" class="hidden max-w-7xl mx-auto p-6 space-y-5">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <button type="button" id="subTabRouteBtn" onclick="switchMasterSubTab('routes')"
+            class="px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition">
+            Master Rute & Tarif (<span id="masterRouteCount">0</span>)
+          </button>
+          <button type="button" id="subTabFleetBtn" onclick="switchMasterSubTab('fleets')"
+            class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            Master Armada & Driver (<span id="masterFleetCount">0</span>)
+          </button>
+        </div>
+        <button type="button" onclick="loadAllData(activePin)"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+          Refresh Master Data
+        </button>
+      </div>
+
+      <!-- SUB-TAB 1: MASTER RUTE & TARIF -->
+      <div id="masterRoutesPane" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Form Tambah / Edit Rute -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
+          <div class="flex justify-between items-center border-b pb-2.5">
+            <h3 id="routeFormTitle" class="text-sm font-bold text-slate-800">Tambah Rute & Tarif Baru</h3>
+            <button type="button" id="cancelEditRouteBtn" onclick="resetMasterRouteForm()"
+              class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
+          </div>
+          <form id="masterRouteForm" class="space-y-3">
+            <input type="hidden" id="mr_row_number" value="0" />
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Rute / Customer *</label>
+              <input type="text" id="mr_customer" required placeholder="Contoh: AHM-CKR / ADYAWINSA"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat</label>
+                <input type="text" id="mr_origin" placeholder="Bekasi / CKR"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar</label>
+                <input type="text" id="mr_destination" placeholder="Karawang / Sunter"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
+              <input list="armadaTypeList" id="mr_vehicle_type" placeholder="Cdd Engkel / Fuso Wing Box..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Uang Jalan (Rp)</label>
+                <input type="number" id="mr_uang_jalan" placeholder="0"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Tarif Jual (Rp)</label>
+                <input type="number" id="mr_base_rate" placeholder="0"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <button type="submit" id="saveMasterRouteBtn"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
+              Simpan Rute & Tarif
+            </button>
+          </form>
+        </div>
+
+        <!-- Tabel Daftar Rute & Tarif -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Master_Tarif</h3>
+            <input type="text" id="searchMasterRouteInput" onkeyup="renderMasterRoutesTable()" placeholder="Cari kode rute, asal, tujuan..."
+              class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs w-64 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="overflow-x-auto max-h-[540px]">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                <tr>
+                  <th class="py-2.5 px-3">Customer / Rute</th>
+                  <th class="py-2.5 px-3">Asal &rarr; Tujuan</th>
+                  <th class="py-2.5 px-3">Armada</th>
+                  <th class="py-2.5 px-3 text-right">Uang Jalan</th>
+                  <th class="py-2.5 px-3 text-right">Tarif Jual</th>
+                  <th class="py-2.5 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="masterRoutesTableBody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: MASTER ARMADA & DRIVER -->
+      <div id="masterFleetsPane" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Form Tambah / Edit Armada -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
+          <div class="flex justify-between items-center border-b pb-2.5">
+            <h3 id="fleetFormTitle" class="text-sm font-bold text-slate-800">Tambah Armada & Driver</h3>
+            <button type="button" id="cancelEditFleetBtn" onclick="resetMasterFleetForm()"
+              class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
+          </div>
+          <form id="masterFleetForm" class="space-y-3">
+            <input type="hidden" id="mf_row_number" value="0" />
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Polisi (Nopol) *</label>
+              <input type="text" id="mf_nopol" required placeholder="Contoh: B 9123 KXU"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
+              <input list="armadaTypeList" id="mf_vehicle_type" placeholder="Cdd Engkel / Fuso Wing Box..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver Tetap</label>
+              <input type="text" id="mf_driver_name" placeholder="Nama lengkap driver..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <button type="submit" id="saveMasterFleetBtn"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
+              Simpan Armada & Driver
+            </button>
+          </form>
+        </div>
+
+        <!-- Tabel Daftar Armada & Driver -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Master_Armada</h3>
+            <input type="text" id="searchMasterFleetInput" onkeyup="renderMasterFleetsTable()" placeholder="Cari nopol, jenis armada, nama driver..."
+              class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs w-64 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="overflow-x-auto max-h-[540px]">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                <tr>
+                  <th class="py-2.5 px-4">Nomor Polisi</th>
+                  <th class="py-2.5 px-4">Jenis Armada</th>
+                  <th class="py-2.5 px-4">Nama Driver</th>
+                  <th class="py-2.5 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="masterFleetsTableBody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -555,7 +740,7 @@
     </div>
   </div>
 
-  <!-- MODAL 2: VERIFIKASI STATUS POD -->
+  <!-- MODAL 2: VERIFIKASI STATUS POD SATUAN -->
   <div id="podModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
     <div class="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden my-6">
       <div class="bg-emerald-700 text-white px-5 py-3.5 flex justify-between items-center">
@@ -617,6 +802,47 @@
         <div class="pt-3 border-t flex justify-end gap-2">
           <button type="button" onclick="closePodModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
           <button type="submit" id="savePodBtn" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm">Simpan Status POD</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2B: UPDATE STATUS POD MASSAL (BULK UPDATE) -->
+  <div id="bulkPodModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
+    <div class="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden my-6">
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-sm">Update Status POD Massal</h3>
+          <p id="bulkPodModalSubtitle" class="text-xs text-amber-400 font-semibold">0 item POD dipilih</p>
+        </div>
+        <button onclick="closeBulkPodModal()" class="text-slate-300 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+
+      <form id="bulkPodForm" class="p-5 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Status GR Baru untuk Semua Item Terpilih *</label>
+          <select id="bulk_status_gr" onchange="toggleBulkIssueField()" required
+            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="SJ ADA">SJ ADA</option>
+            <option value="SUMMARY ADA">SUMMARY ADA</option>
+            <option value="SJ LENGKAP">SJ LENGKAP</option>
+            <option value="OK GR" selected>OK GR (Lengkap / Siap Penagihan)</option>
+            <option value="OPEN GR">OPEN GR (Tertahan / Ada Kendala)</option>
+            <option value="BELUM KEMBALI">BELUM KEMBALI</option>
+          </select>
+        </div>
+
+        <div id="bulkIssueContainer" class="hidden bg-red-50 p-3 rounded-lg border border-red-200 space-y-2">
+          <label class="block text-xs font-bold text-red-700">Keterangan Kendala (OPEN GR)</label>
+          <textarea id="bulk_keterangan_issue" rows="2" placeholder="Tulis kendala untuk seluruh item terpilih..."
+            class="w-full px-3 py-2 border border-red-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+        </div>
+
+        <div class="pt-3 border-t flex justify-end gap-2">
+          <button type="button" onclick="closeBulkPodModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+          <button type="submit" id="saveBulkPodBtn" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm">
+            Terapkan ke Semua Terpilih
+          </button>
         </div>
       </form>
     </div>
@@ -685,6 +911,7 @@
     let allOrders = [];
     let currentFilteredOrders = [];
     let currentFilter = "ALL";
+    let selectedPodRows = new Set();
 
     let allBillings = [];
     let currentFilteredBillings = [];
@@ -731,7 +958,7 @@
       });
     });
 
-    // --- HELPER FILTER RENTANG TANGGAL & PRESET CEPAT ---
+    // --- HELPER TANGGAL & AGING KETERLAMBATAN ---
     function toLocalIsoDate(dateObj) {
       const yyyy = dateObj.getFullYear();
       const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -746,6 +973,19 @@
         return `${yyyy}-${mm}-${dd}`;
       }
       return "";
+    }
+
+    function computeAgingDays(item) {
+      if (item.status_gr === "OK GR") return 0;
+      const iso = normalizeRowIsoDate(item);
+      if (!iso) return 0;
+      const [y, m, d] = iso.split("-").map(Number);
+      const loadDate = new Date(y, m - 1, d);
+      const now = new Date();
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const diffMs = todayMidnight - loadDate;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 0;
     }
 
     function matchDateRange(item, startIso, endIso) {
@@ -1219,12 +1459,14 @@
       const views = {
         order: document.getElementById("viewOrder"),
         pod: document.getElementById("viewPod"),
-        billing: document.getElementById("viewBilling")
+        billing: document.getElementById("viewBilling"),
+        master: document.getElementById("viewMaster")
       };
       const btns = {
         order: document.getElementById("tabBtnOrder"),
         pod: document.getElementById("tabBtnPod"),
-        billing: document.getElementById("tabBtnBilling")
+        billing: document.getElementById("tabBtnBilling"),
+        master: document.getElementById("tabBtnMaster")
       };
 
       Object.keys(views).forEach(k => {
@@ -1241,6 +1483,10 @@
 
       if (tab === "pod") renderTable();
       if (tab === "billing") renderBillingTable();
+      if (tab === "master") {
+        renderMasterRoutesTable();
+        renderMasterFleetsTable();
+      }
     }
 
     async function loadAllData(pin) {
@@ -1280,8 +1526,14 @@
           document.getElementById("billKpiSudah").textContent = ((bSum.sudah_ditagih || 0) + (bSum.lunas || 0)).toLocaleString("id-ID");
           document.getElementById("billKpiNominal").textContent = "Rp " + (bSum.nominal_belum_ditagih || 0).toLocaleString("id-ID");
 
+          // Counter Master Data
+          document.getElementById("masterRouteCount").textContent = masterRoutes.length.toLocaleString("id-ID");
+          document.getElementById("masterFleetCount").textContent = masterFleets.length.toLocaleString("id-ID");
+
           renderTable();
           renderBillingTable();
+          renderMasterRoutesTable();
+          renderMasterFleetsTable();
           return true;
         }
         return false;
@@ -1460,7 +1712,7 @@
       }
     });
 
-    // --- VERIFIKASI POD ---
+    // --- VERIFIKASI POD + BULK UPDATE + REMINDER AGING ---
     function setFilter(status) {
       currentFilter = status;
       document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -1474,6 +1726,7 @@
     function resetAllFilters() {
       document.getElementById("podDateStart").value = "";
       document.getElementById("podDateEnd").value = "";
+      document.getElementById("podAgingFilter").value = "ALL";
       document.getElementById("filterRouteInput").value = "";
       document.getElementById("filterSjInput").value = "";
       document.getElementById("searchInput").value = "";
@@ -1489,10 +1742,111 @@
       return "bg-amber-100 text-amber-800 border-amber-200";
     }
 
+    function updateBulkPodBar() {
+      const bar = document.getElementById("bulkPodActionBar");
+      const countEl = document.getElementById("selectedPodCount");
+      countEl.textContent = selectedPodRows.size.toLocaleString("id-ID");
+      if (selectedPodRows.size > 0) {
+        bar.classList.remove("hidden");
+      } else {
+        bar.classList.add("hidden");
+      }
+    }
+
+    function toggleSinglePodRow(rowNumber, checked) {
+      const r = Number(rowNumber);
+      if (checked) selectedPodRows.add(r);
+      else selectedPodRows.delete(r);
+      updateBulkPodBar();
+    }
+
+    function toggleSelectAllPod(masterChk) {
+      const visibleRows = currentFilteredOrders.slice(0, 300);
+      visibleRows.forEach(item => {
+        const r = Number(item.row_number);
+        if (masterChk.checked) selectedPodRows.add(r);
+        else selectedPodRows.delete(r);
+      });
+      renderTable();
+    }
+
+    function clearPodSelection() {
+      selectedPodRows.clear();
+      const masterChk = document.getElementById("selectAllPodChk");
+      if (masterChk) masterChk.checked = false;
+      renderTable();
+    }
+
+    function openBulkPodModal() {
+      if (selectedPodRows.size === 0) return;
+      document.getElementById("bulkPodModalSubtitle").textContent = `${selectedPodRows.size} item POD dipilih untuk diperbarui`;
+      document.getElementById("bulk_keterangan_issue").value = "";
+      toggleBulkIssueField();
+      const modal = document.getElementById("bulkPodModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeBulkPodModal() {
+      const modal = document.getElementById("bulkPodModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    function toggleBulkIssueField() {
+      const status = document.getElementById("bulk_status_gr").value;
+      const box = document.getElementById("bulkIssueContainer");
+      status === "OPEN GR" ? box.classList.remove("hidden") : box.classList.add("hidden");
+    }
+
+    document.getElementById("bulkPodForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (selectedPodRows.size === 0) return;
+
+      const btn = document.getElementById("saveBulkPodBtn");
+      btn.disabled = true;
+      btn.textContent = "Memperbarui...";
+
+      const statusGr = document.getElementById("bulk_status_gr").value;
+      const payload = {
+        pin: activePin,
+        action: "BULK_UPDATE_POD",
+        data: {
+          row_numbers: Array.from(selectedPodRows),
+          status_gr: statusGr,
+          keterangan_issue: statusGr === "OPEN GR" ? document.getElementById("bulk_keterangan_issue").value.trim() : ""
+        }
+      };
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          selectedPodRows.clear();
+          const masterChk = document.getElementById("selectAllPodChk");
+          if (masterChk) masterChk.checked = false;
+          closeBulkPodModal();
+          await loadAllData(activePin);
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        alert("Gagal update status POD massal: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Terapkan ke Semua Terpilih";
+      }
+    });
+
     function renderTable() {
       const tbody = document.getElementById("ordersTableBody");
       const startIso = document.getElementById("podDateStart").value;
       const endIso = document.getElementById("podDateEnd").value;
+      const agingMode = document.getElementById("podAgingFilter").value;
       const routeQuery = document.getElementById("filterRouteInput").value.trim().toLowerCase();
       const sjQuery = document.getElementById("filterSjInput").value.trim().toLowerCase();
       const generalQuery = document.getElementById("searchInput").value.trim().toLowerCase();
@@ -1500,6 +1854,12 @@
       currentFilteredOrders = allOrders.filter(item => {
         const matchStatus = currentFilter === "ALL" || item.status_gr === currentFilter;
         const matchDate = matchDateRange(item, startIso, endIso);
+
+        const agingDays = computeAgingDays(item);
+        let matchAging = true;
+        if (agingMode === "OVER_3") matchAging = item.status_gr !== "OK GR" && agingDays > 3;
+        else if (agingMode === "OVER_7") matchAging = item.status_gr !== "OK GR" && agingDays > 7;
+
         const matchRoute = !routeQuery || (item.customer || "").toLowerCase().includes(routeQuery);
         const matchSj = !sjQuery || (item.no_surat_jalan || "").toLowerCase().includes(sjQuery);
         const matchGeneral = !generalQuery ||
@@ -1509,15 +1869,17 @@
           (item.asal || "").toLowerCase().includes(generalQuery) ||
           (item.tujuan || "").toLowerCase().includes(generalQuery);
 
-        return matchStatus && matchDate && matchRoute && matchSj && matchGeneral;
+        return matchStatus && matchDate && matchAging && matchRoute && matchSj && matchGeneral;
       });
 
       document.getElementById("filterCounter").textContent =
         `Ditemukan ${currentFilteredOrders.length.toLocaleString("id-ID")} data` +
         (currentFilteredOrders.length > 300 ? " (tampil 300 teratas)" : "");
 
+      updateBulkPodBar();
+
       if (currentFilteredOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Tidak ada data yang sesuai filter pencarian / rentang tanggal.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Tidak ada data yang sesuai filter pencarian / rentang tanggal.</td></tr>`;
         return;
       }
 
@@ -1525,6 +1887,16 @@
 
       tbody.innerHTML = visibleRows.map(item => {
         const badgeClass = getStatusBadgeClass(item.status_gr);
+        const isChecked = selectedPodRows.has(Number(item.row_number)) ? "checked" : "";
+        const agingDays = computeAgingDays(item);
+
+        let agingBadge = "";
+        if (item.status_gr !== "OK GR" && agingDays > 7) {
+          agingBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold ml-1">&#9888; Telat ${agingDays} hr</span>`;
+        } else if (item.status_gr !== "OK GR" && agingDays > 3) {
+          agingBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-bold ml-1">&#9200; ${agingDays} hr</span>`;
+        }
+
         const kgDisplay = (item.kilogram !== "" && item.kilogram !== null && item.kilogram !== undefined)
           ? `<div class="text-[11px] font-semibold text-blue-700 mt-0.5">${Number(item.kilogram).toLocaleString("id-ID")} Kg</div>`
           : `<div class="text-[11px] text-slate-400 mt-0.5">- Kg</div>`;
@@ -1534,7 +1906,11 @@
         const itemJson = JSON.stringify(item).replace(/'/g, "&#39;");
 
         return `
-          <tr class="hover:bg-slate-50 transition">
+          <tr class="hover:bg-slate-50 transition ${isChecked ? "bg-blue-50/70" : ""}">
+            <td class="py-3 px-3 text-center">
+              <input type="checkbox" ${isChecked} onchange="toggleSinglePodRow(${item.row_number}, this.checked)"
+                class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+            </td>
             <td class="py-3 px-4">
               <div class="font-mono font-bold text-xs text-slate-800">${item.no_spj}</div>
               <div class="text-xs text-slate-500">${item.tgl_muat}</div>
@@ -1552,7 +1928,10 @@
               ${kgDisplay}
             </td>
             <td class="py-3 px-4">
-              <div><span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">${item.status_gr}</span></div>
+              <div class="flex flex-wrap items-center gap-1">
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeClass}">${item.status_gr}</span>
+                ${agingBadge}
+              </div>
               ${item.keterangan_issue ? `<div class="text-[11px] text-red-600 mt-1 max-w-xs">${item.keterangan_issue}</div>` : ""}
               ${lastUpdatedBadge}
             </td>
@@ -1583,6 +1962,7 @@
         "No": idx + 1,
         "No_SPJ": item.no_spj,
         "Tgl_Muat": item.tgl_muat,
+        "Umur_Trip_Hari": computeAgingDays(item),
         "Customer / Kode Rute": item.customer,
         "Asal": item.asal,
         "Tujuan": item.tujuan,
@@ -1841,7 +2221,216 @@
       XLSX.writeFile(wb, `Lampiran_Penagihan_OK_GR_${today}.xlsx`);
     }
 
-    // --- MODAL EDIT & POD ---
+    // --- MANAJEMEN MASTER DATA (RUTE & ARMADA) ---
+    function switchMasterSubTab(sub) {
+      const routePane = document.getElementById("masterRoutesPane");
+      const fleetPane = document.getElementById("masterFleetsPane");
+      const routeBtn = document.getElementById("subTabRouteBtn");
+      const fleetBtn = document.getElementById("subTabFleetBtn");
+
+      if (sub === "routes") {
+        routePane.classList.remove("hidden");
+        fleetPane.classList.add("hidden");
+        routeBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition";
+        fleetBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+      } else {
+        routePane.classList.add("hidden");
+        fleetPane.classList.remove("hidden");
+        fleetBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition";
+        routeBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+      }
+    }
+
+    function renderMasterRoutesTable() {
+      const tbody = document.getElementById("masterRoutesTableBody");
+      const q = (document.getElementById("searchMasterRouteInput")?.value || "").trim().toLowerCase();
+      const filtered = masterRoutes.filter(r =>
+        !q ||
+        (r.customer || "").toLowerCase().includes(q) ||
+        (r.origin || "").toLowerCase().includes(q) ||
+        (r.destination || "").toLowerCase().includes(q) ||
+        (r.vehicle_type || "").toLowerCase().includes(q)
+      );
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Tidak ada data Master_Tarif.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => {
+        const rJson = JSON.stringify(r).replace(/'/g, "&#39;");
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2.5 px-3 font-bold text-slate-800">${r.customer}</td>
+            <td class="py-2.5 px-3 text-slate-600">${r.origin || "-"} &rarr; ${r.destination || "-"}</td>
+            <td class="py-2.5 px-3 text-slate-600">${r.vehicle_type || "-"}</td>
+            <td class="py-2.5 px-3 text-right font-mono">Rp ${(r.uang_jalan || 0).toLocaleString("id-ID")}</td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">Rp ${(r.base_rate || 0).toLocaleString("id-ID")}</td>
+            <td class="py-2.5 px-3 text-right">
+              <button type="button" onclick='editMasterRoute(${rJson})'
+                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded font-semibold">
+                Edit
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function editMasterRoute(r) {
+      document.getElementById("mr_row_number").value = r.row_number || 0;
+      document.getElementById("mr_customer").value = r.customer || "";
+      document.getElementById("mr_origin").value = r.origin || "";
+      document.getElementById("mr_destination").value = r.destination || "";
+      document.getElementById("mr_vehicle_type").value = r.vehicle_type || "";
+      document.getElementById("mr_uang_jalan").value = r.uang_jalan || 0;
+      document.getElementById("mr_base_rate").value = r.base_rate || 0;
+
+      document.getElementById("routeFormTitle").textContent = `Edit Rute: ${r.customer}`;
+      document.getElementById("saveMasterRouteBtn").textContent = "Update Rute & Tarif";
+      document.getElementById("cancelEditRouteBtn").classList.remove("hidden");
+    }
+
+    function resetMasterRouteForm() {
+      document.getElementById("masterRouteForm").reset();
+      document.getElementById("mr_row_number").value = "0";
+      document.getElementById("routeFormTitle").textContent = "Tambah Rute & Tarif Baru";
+      document.getElementById("saveMasterRouteBtn").textContent = "Simpan Rute & Tarif";
+      document.getElementById("cancelEditRouteBtn").classList.add("hidden");
+    }
+
+    document.getElementById("masterRouteForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("saveMasterRouteBtn");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      const payload = {
+        pin: activePin,
+        action: "SAVE_MASTER_ROUTE",
+        data: {
+          row_number: Number(document.getElementById("mr_row_number").value || 0),
+          customer: document.getElementById("mr_customer").value.trim(),
+          origin: document.getElementById("mr_origin").value.trim(),
+          destination: document.getElementById("mr_destination").value.trim(),
+          vehicle_type: document.getElementById("mr_vehicle_type").value.trim(),
+          uang_jalan: Number(document.getElementById("mr_uang_jalan").value || 0),
+          base_rate: Number(document.getElementById("mr_base_rate").value || 0)
+        }
+      };
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          resetMasterRouteForm();
+          await loadAllData(activePin);
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        alert("Gagal menyimpan Master Rute: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Simpan Rute & Tarif";
+      }
+    });
+
+    function renderMasterFleetsTable() {
+      const tbody = document.getElementById("masterFleetsTableBody");
+      const q = (document.getElementById("searchMasterFleetInput")?.value || "").trim().toLowerCase();
+      const filtered = masterFleets.filter(f =>
+        !q ||
+        (f.nopol || "").toLowerCase().includes(q) ||
+        (f.vehicle_type || "").toLowerCase().includes(q) ||
+        (f.driver_name || "").toLowerCase().includes(q)
+      );
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400">Tidak ada data Master_Armada.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(f => {
+        const fJson = JSON.stringify(f).replace(/'/g, "&#39;");
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2.5 px-4 font-mono font-bold text-slate-800">${f.nopol}</td>
+            <td class="py-2.5 px-4 text-slate-600">${f.vehicle_type || "-"}</td>
+            <td class="py-2.5 px-4 font-semibold text-slate-700">${f.driver_name || "-"}</td>
+            <td class="py-2.5 px-4 text-right">
+              <button type="button" onclick='editMasterFleet(${fJson})'
+                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded font-semibold">
+                Edit
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function editMasterFleet(f) {
+      document.getElementById("mf_row_number").value = f.row_number || 0;
+      document.getElementById("mf_nopol").value = f.nopol || "";
+      document.getElementById("mf_vehicle_type").value = f.vehicle_type || "";
+      document.getElementById("mf_driver_name").value = f.driver_name || "";
+
+      document.getElementById("fleetFormTitle").textContent = `Edit Armada: ${f.nopol}`;
+      document.getElementById("saveMasterFleetBtn").textContent = "Update Armada & Driver";
+      document.getElementById("cancelEditFleetBtn").classList.remove("hidden");
+    }
+
+    function resetMasterFleetForm() {
+      document.getElementById("masterFleetForm").reset();
+      document.getElementById("mf_row_number").value = "0";
+      document.getElementById("fleetFormTitle").textContent = "Tambah Armada & Driver";
+      document.getElementById("saveMasterFleetBtn").textContent = "Simpan Armada & Driver";
+      document.getElementById("cancelEditFleetBtn").classList.add("hidden");
+    }
+
+    document.getElementById("masterFleetForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("saveMasterFleetBtn");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      const payload = {
+        pin: activePin,
+        action: "SAVE_MASTER_FLEET",
+        data: {
+          row_number: Number(document.getElementById("mf_row_number").value || 0),
+          nopol: document.getElementById("mf_nopol").value.trim().toUpperCase(),
+          vehicle_type: document.getElementById("mf_vehicle_type").value.trim(),
+          driver_name: document.getElementById("mf_driver_name").value.trim()
+        }
+      };
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          resetMasterFleetForm();
+          await loadAllData(activePin);
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        alert("Gagal menyimpan Master Armada: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Simpan Armada & Driver";
+      }
+    });
+
+    // --- MODAL EDIT & POD SATUAN ---
     function openEditModal(item) {
       document.getElementById("edit_row_number").value = item.row_number;
       document.getElementById("editModalSubtitle").textContent = `${item.no_spj} | Baris Sheets #${item.row_number}`;
@@ -1904,11 +2493,6 @@
         if (result.status === "success") {
           closeEditModal();
           await loadAllData(activePin);
-          const target = allOrders.find(o => Number(o.row_number) === rowNumber);
-          if (target && !target.last_updated) {
-            target.last_updated = updatedTimestamp;
-            renderTable();
-          }
         } else {
           throw new Error(result.message);
         }
@@ -1985,11 +2569,6 @@
         if (result.status === "success") {
           closePodModal();
           await loadAllData(activePin);
-          const target = allOrders.find(o => Number(o.row_number) === rowNumber);
-          if (target && !target.last_updated) {
-            target.last_updated = updatedTimestamp;
-            renderTable();
-          }
         } else {
           throw new Error(result.message);
         }
