@@ -5,30 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TMS Operasional, POD & Rekap Penagihan</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Library SheetJS untuk Export Excel (.xlsx) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-  <!-- Library PDF.js untuk Pembacaan File PDF Trip Note & Delivery Note -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
 
-  <!-- LAYAR KUNCI PIN -->
-  <div id="pinOverlay" class="fixed inset-0 bg-slate-900 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-5">
-      <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto font-bold text-xl">
-        &#128274;
-      </div>
-      <div>
+  <!-- LAYAR LOGIN MULTI-USER -->
+  <div id="loginOverlay" class="fixed inset-0 bg-slate-900 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+      <div class="text-center">
+        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto font-bold text-xl mb-3">
+          &#128274;
+        </div>
         <h2 class="text-lg font-bold text-slate-800">TMS Operasional, POD & Penagihan</h2>
-        <p class="text-xs text-slate-500 mt-1">Masukkan PIN Tim Operasional untuk mengakses sistem</p>
+        <p class="text-xs text-slate-500 mt-1">Masuk menggunakan akun tim operasional</p>
       </div>
-      <form id="pinForm" class="space-y-3">
-        <input type="password" id="pinInput" inputmode="numeric" placeholder="••••" required autofocus
-          class="w-full text-center tracking-[0.5em] text-xl font-bold px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <p id="pinError" class="text-xs font-semibold text-red-600 hidden">PIN salah! Silakan coba lagi.</p>
-        <button type="submit" id="pinSubmitBtn"
+      <form id="loginForm" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Username</label>
+          <input type="text" id="loginUsername" placeholder="Contoh: arghi / dede" required autofocus
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <p id="loginError" class="text-xs font-semibold text-red-600 hidden text-center">Username atau Password salah!</p>
+        <button type="submit" id="loginSubmitBtn"
           class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-sm transition">
-          Buka Sistem
+          Masuk ke Sistem
         </button>
       </form>
     </div>
@@ -40,7 +46,7 @@
       <div class="flex flex-wrap items-center gap-6">
         <div>
           <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
-          <p class="text-xs text-slate-400">Input SPJ (1 SPJ = 1 DN), Verifikasi POD, Penagihan & Master Data</p>
+          <p class="text-xs text-slate-400">Input SPJ (1 SPJ = 1 DN), Verifikasi POD & Rekap Penagihan</p>
         </div>
         <div class="flex flex-wrap gap-2 text-xs font-semibold">
           <button type="button" id="tabBtnOrder" onclick="switchTab('order')"
@@ -56,22 +62,37 @@
             <span>Rekap Penagihan (OK GR)</span>
             <span id="navBillingBadge" class="px-1.5 py-0.2 bg-emerald-500 text-slate-950 rounded-full text-[10px] font-extrabold">0</span>
           </button>
+          <!-- TAB MASTER DATA (KHUSUS SUPER_ADMIN) -->
           <button type="button" id="tabBtnMaster" onclick="switchTab('master')"
-            class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-            Master Data
+            class="hidden px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            Master Data & User
           </button>
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <div id="syncStatus" class="text-xs bg-emerald-950 px-3 py-1.5 rounded-full text-emerald-400 border border-emerald-700">
-          Terhubung
+        <div class="text-right">
+          <div id="activeUserDisplay" class="text-xs font-bold text-white">Halo, User</div>
+          <div id="activeUserRoleBadge" class="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">ROLE</div>
         </div>
-        <button onclick="lockApp()" title="Kunci Layar"
-          class="text-xs bg-red-950 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded-lg border border-red-800 transition">
-          Kunci
+        <button onclick="logoutApp()" title="Keluar Akun"
+          class="text-xs bg-red-950 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded-lg border border-red-800 transition font-semibold">
+          Keluar
         </button>
       </div>
     </nav>
+
+    <!-- DATALIST GLOBAL -->
+    <datalist id="projectDatalist"></datalist>
+    <datalist id="customerList"></datalist>
+    <datalist id="filterRouteList"></datalist>
+    <datalist id="nopolList"></datalist>
+    <datalist id="armadaTypeList">
+      <option value="Cdd Engkel">
+      <option value="Fuso Wing Box">
+      <option value="Tronton Wing Box">
+      <option value="CDD Box">
+      <option value="CDE Box">
+    </datalist>
 
     <!-- VIEW 1: INPUT ORDER -->
     <section id="viewOrder" class="max-w-5xl mx-auto p-6">
@@ -86,7 +107,7 @@
                 <h3 class="text-sm font-bold text-slate-800">Import & Preview PDF Trip Note / Delivery Note</h3>
               </div>
               <p class="text-xs text-slate-600">
-                Mendukung banyak DN sekaligus meski <b>Kode Rute berbeda-beda</b>. Nomor DN kembar digabung menjadi 1, dan setiap DN unik mendapat <b>1 SPJ + Kode Rute masing-masing</b>.
+                Mendukung banyak DN sekaligus meski <b>Kode Rute & Project berbeda-beda</b>. Setiap DN unik mendapat <b>1 SPJ + Kode Rute masing-masing</b>.
               </p>
               <p id="pdfReadStatus" class="text-xs font-semibold text-blue-700 hidden"></p>
             </div>
@@ -99,7 +120,6 @@
             </div>
           </div>
 
-          <!-- PANEL PREVIEW HASIL PEMBACAAN PDF -->
           <div id="pdfPreviewPanel" class="hidden bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
             <div class="bg-slate-800 text-white px-4 py-2.5 flex flex-wrap justify-between items-center gap-2">
               <div class="flex items-center gap-2">
@@ -171,19 +191,11 @@
               <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Polisi (Nopol) *</label>
               <input list="nopolList" id="nopol_input" placeholder="Ketik atau pilih nopol..." required
                 class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <datalist id="nopolList"></datalist>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
               <input list="armadaTypeList" id="vehicle_type" placeholder="Pilih / ketik jenis armada..."
                 class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <datalist id="armadaTypeList">
-                <option value="Cdd Engkel">
-                <option value="Fuso Wing Box">
-                <option value="Tronton Wing Box">
-                <option value="CDD Box">
-                <option value="CDE Box">
-              </datalist>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver</label>
@@ -198,7 +210,7 @@
           <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b pb-2">
             <div>
               <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">3. Rincian SPJ, No. DN & Kode Rute (Bisa Berbeda per DN)</h2>
-              <p class="text-[11px] text-slate-500">Setiap baris memiliki 1 No. SPJ, 1 No. DN, dan Kode Rute masing-masing. Asal Muat & Tujuan Bongkar bersifat opsional.</p>
+              <p class="text-[11px] text-slate-500">Project otomatis terdeteksi sesuai Kode Rute yang dipilih di Master_Tarif.</p>
             </div>
             <button type="button" id="addSjBtn"
               class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition">
@@ -206,7 +218,6 @@
             </button>
           </div>
 
-          <datalist id="customerList"></datalist>
           <div id="sjContainer" class="space-y-3"></div>
         </div>
 
@@ -220,7 +231,7 @@
       </form>
     </section>
 
-    <!-- VIEW 2: VERIFIKASI POD (DENGAN BULK UPDATE & REMINDER AGING) -->
+    <!-- VIEW 2: VERIFIKASI POD -->
     <section id="viewPod" class="hidden max-w-7xl mx-auto p-6 space-y-5">
       <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
         <div onclick="setFilter('ALL')" class="cursor-pointer bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
@@ -249,7 +260,7 @@
         </div>
       </div>
 
-      <!-- BAR AKSI BULK UPDATE POD (MUNCUL SAAT ADA ITEM DICENTANG) -->
+      <!-- BAR AKSI BULK UPDATE POD -->
       <div id="bulkPodActionBar" class="hidden bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-4 border border-slate-700">
         <div class="flex items-center gap-4">
           <span class="px-3 py-1 bg-amber-500 text-slate-950 font-extrabold text-xs rounded-full">
@@ -288,13 +299,12 @@
             <button onclick="exportFilteredToExcel()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm">
               Export Excel (.xlsx)
             </button>
-            <button onclick="loadAllData(activePin)" id="refreshBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+            <button onclick="loadAllData()" id="refreshBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
               Refresh
             </button>
           </div>
         </div>
 
-        <!-- BAR FILTER RENTANG TANGGAL & AGING KETERLAMBATAN -->
         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/80 flex flex-wrap items-end justify-between gap-3">
           <div class="flex flex-wrap items-end gap-3">
             <div>
@@ -327,12 +337,18 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+          <div>
+            <label class="block text-[11px] font-bold text-indigo-700 uppercase mb-1">Filter Project</label>
+            <select id="podProjectFilter" onchange="renderTable()"
+              class="w-full px-3 py-1.5 bg-indigo-50/60 border border-indigo-300 rounded-lg text-sm font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="ALL">Semua Project</option>
+            </select>
+          </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Filter Kode Rute / Customer</label>
             <input list="filterRouteList" id="filterRouteInput" oninput="renderTable()" placeholder="Pilih atau ketik kode rute..."
               class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <datalist id="filterRouteList"></datalist>
           </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Cari Nomor Surat Jalan / DN</label>
@@ -357,10 +373,10 @@
                     class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 </th>
                 <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
-                <th class="py-3 px-4">Kode Rute & Lokasi</th>
+                <th class="py-3 px-4">Project, Rute & Lokasi</th>
                 <th class="py-3 px-4">Armada & Driver</th>
                 <th class="py-3 px-4">No. SJ / DN & Kg</th>
-                <th class="py-3 px-4">Status GR, Aging & Jejak Ubah</th>
+                <th class="py-3 px-4">Status GR, Aging & Jejak Audit</th>
                 <th class="py-3 px-4 text-right">Aksi</th>
               </tr>
             </thead>
@@ -370,7 +386,7 @@
       </div>
     </section>
 
-    <!-- VIEW 3: REKAP PENAGIHAN (OTOMATIS DARI OK GR) -->
+    <!-- VIEW 3: REKAP PENAGIHAN (OK GR) -->
     <section id="viewBilling" class="hidden max-w-7xl mx-auto p-6 space-y-5">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div onclick="setBillingFilter('ALL')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
@@ -432,7 +448,7 @@
             <button onclick="resetBillingFilters()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">
               Reset Filter
             </button>
-            <button onclick="loadAllData(activePin)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+            <button onclick="loadAllData()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
               Refresh
             </button>
           </div>
@@ -461,7 +477,14 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+          <div>
+            <label class="block text-[11px] font-bold text-indigo-700 uppercase mb-1">Filter Project</label>
+            <select id="billProjectFilter" onchange="renderBillingTable()"
+              class="w-full px-3 py-1.5 bg-indigo-50/60 border border-indigo-300 rounded-lg text-sm font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="ALL">Semua Project</option>
+            </select>
+          </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Filter Kode Rute / Customer</label>
             <input list="filterRouteList" id="billRouteInput" oninput="renderBillingTable()" placeholder="Pilih atau ketik kode rute..."
@@ -490,7 +513,7 @@
                     class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 </th>
                 <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
-                <th class="py-3 px-4">Kode Rute & Armada</th>
+                <th class="py-3 px-4">Project, Rute & Armada</th>
                 <th class="py-3 px-4">No. SJ / DN & Kg</th>
                 <th class="py-3 px-4 text-right">Tarif Jual</th>
                 <th class="py-3 px-4">Status Tagih</th>
@@ -503,105 +526,143 @@
       </div>
     </section>
 
-    <!-- VIEW 4: MANAJEMEN MASTER DATA (MASTER_TARIF & MASTER_ARMADA) -->
+    <!-- VIEW 4: MANAJEMEN MASTER DATA, PROJECT & PENGGUNA (KHUSUS SUPER_ADMIN) -->
     <section id="viewMaster" class="hidden max-w-7xl mx-auto p-6 space-y-5">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <button type="button" id="subTabRouteBtn" onclick="switchMasterSubTab('routes')"
             class="px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition">
-            Master Rute & Tarif (<span id="masterRouteCount">0</span>)
+            Master Rute, Tarif & Project (<span id="masterRouteCount">0</span>)
           </button>
           <button type="button" id="subTabFleetBtn" onclick="switchMasterSubTab('fleets')"
             class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
             Master Armada & Driver (<span id="masterFleetCount">0</span>)
           </button>
+          <button type="button" id="subTabUserBtn" onclick="switchMasterSubTab('users')"
+            class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            Kelola Pengguna (<span id="masterUserCount">0</span>)
+          </button>
         </div>
-        <button type="button" onclick="loadAllData(activePin)"
+        <button type="button" onclick="loadAllData()"
           class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
           Refresh Master Data
         </button>
       </div>
 
-      <!-- SUB-TAB 1: MASTER RUTE & TARIF -->
-      <div id="masterRoutesPane" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <!-- Form Tambah / Edit Rute -->
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
-          <div class="flex justify-between items-center border-b pb-2.5">
-            <h3 id="routeFormTitle" class="text-sm font-bold text-slate-800">Tambah Rute & Tarif Baru</h3>
-            <button type="button" id="cancelEditRouteBtn" onclick="resetMasterRouteForm()"
-              class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
+      <!-- SUB-TAB 1: MASTER RUTE, TARIF & PROJECT -->
+      <div id="masterRoutesPane" class="space-y-4">
+        <div id="bulkRouteProjectBar" class="hidden bg-indigo-950 text-white px-5 py-3.5 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-4 border border-indigo-700">
+          <div class="flex items-center gap-3">
+            <span class="px-3 py-1 bg-amber-400 text-slate-950 font-extrabold text-xs rounded-full">
+              <span id="selectedRouteCount">0</span> Rute Dipilih
+            </span>
+            <span class="text-xs text-indigo-200">Pindahkan semua rute terpilih ke satu grup Project:</span>
           </div>
-          <form id="masterRouteForm" class="space-y-3">
-            <input type="hidden" id="mr_row_number" value="0" />
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Rute / Customer *</label>
-              <input type="text" id="mr_customer" required placeholder="Contoh: AHM-CKR / ADYAWINSA"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat</label>
-                <input type="text" id="mr_origin" placeholder="Bekasi / CKR"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar</label>
-                <input type="text" id="mr_destination" placeholder="Karawang / Sunter"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
-              <input list="armadaTypeList" id="mr_vehicle_type" placeholder="Cdd Engkel / Fuso Wing Box..."
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Uang Jalan (Rp)</label>
-                <input type="number" id="mr_uang_jalan" placeholder="0"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Tarif Jual (Rp)</label>
-                <input type="number" id="mr_base_rate" placeholder="0"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-            <button type="submit" id="saveMasterRouteBtn"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
-              Simpan Rute & Tarif
+          <div class="flex flex-wrap items-center gap-2">
+            <input list="projectDatalist" type="text" id="bulkRouteProjectInput" placeholder="Ketik / pilih nama Project..."
+              class="px-3 py-1.5 bg-white text-slate-900 rounded-lg text-xs font-bold uppercase w-56 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            <button type="button" onclick="applyBulkRouteProject()" id="applyBulkRouteProjectBtn"
+              class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-sm transition">
+              Simpan Project Massal
             </button>
-          </form>
+            <button type="button" onclick="clearRouteSelection()"
+              class="px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-indigo-200 rounded-lg text-xs font-semibold transition">
+              Batal
+            </button>
+          </div>
         </div>
 
-        <!-- Tabel Daftar Rute & Tarif -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Master_Tarif</h3>
-            <input type="text" id="searchMasterRouteInput" onkeyup="renderMasterRoutesTable()" placeholder="Cari kode rute, asal, tujuan..."
-              class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs w-64 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
+            <div class="flex justify-between items-center border-b pb-2.5">
+              <h3 id="routeFormTitle" class="text-sm font-bold text-slate-800">Tambah Rute & Tarif Baru</h3>
+              <button type="button" id="cancelEditRouteBtn" onclick="resetMasterRouteForm()"
+                class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
+            </div>
+            <form id="masterRouteForm" class="space-y-3">
+              <input type="hidden" id="mr_row_number" value="0" />
+              <div>
+                <label class="block text-xs font-bold text-indigo-700 mb-1">Nama Project *</label>
+                <input list="projectDatalist" type="text" id="mr_project" required placeholder="Contoh: SPLD / TMMIN / ADM / AHM"
+                  class="w-full px-3 py-2 bg-indigo-50/50 border border-indigo-300 rounded-lg text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Rute / Customer *</label>
+                <input type="text" id="mr_customer" required placeholder="Contoh: MR57503 / SPLD PALEMBANG"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat</label>
+                  <input type="text" id="mr_origin" placeholder="Bekasi / CKR"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar</label>
+                  <input type="text" id="mr_destination" placeholder="Karawang / Sunter"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
+                <input list="armadaTypeList" id="mr_vehicle_type" placeholder="Cdd Engkel / Fuso Wing Box..."
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Uang Jalan (Rp)</label>
+                  <input type="number" id="mr_uang_jalan" placeholder="0"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Tarif Jual (Rp)</label>
+                  <input type="number" id="mr_base_rate" placeholder="0"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <button type="submit" id="saveMasterRouteBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
+                Simpan Rute & Tarif
+              </button>
+            </form>
           </div>
-          <div class="overflow-x-auto max-h-[540px]">
-            <table class="w-full text-left border-collapse text-xs">
-              <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
-                <tr>
-                  <th class="py-2.5 px-3">Customer / Rute</th>
-                  <th class="py-2.5 px-3">Asal &rarr; Tujuan</th>
-                  <th class="py-2.5 px-3">Armada</th>
-                  <th class="py-2.5 px-3 text-right">Uang Jalan</th>
-                  <th class="py-2.5 px-3 text-right">Tarif Jual</th>
-                  <th class="py-2.5 px-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="masterRoutesTableBody" class="divide-y divide-slate-200"></tbody>
-            </table>
+
+          <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="masterProjectFilter" onchange="renderMasterRoutesTable()"
+                  class="px-2.5 py-1.5 bg-indigo-50 border border-indigo-300 rounded-lg text-xs font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="ALL">Semua Project</option>
+                </select>
+                <span id="masterRouteFilteredCounter" class="text-[11px] font-semibold text-slate-500"></span>
+              </div>
+              <input type="text" id="searchMasterRouteInput" onkeyup="renderMasterRoutesTable()" placeholder="Cari kode rute, asal, tujuan..."
+                class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div class="overflow-x-auto max-h-[540px]">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                  <tr>
+                    <th class="py-2.5 px-3 w-8 text-center">
+                      <input type="checkbox" id="selectAllMasterRoutesChk" onchange="toggleSelectAllMasterRoutes(this)"
+                        class="w-3.5 h-3.5 rounded border-slate-300 text-blue-600" />
+                    </th>
+                    <th class="py-2.5 px-3">Project</th>
+                    <th class="py-2.5 px-3">Customer / Rute</th>
+                    <th class="py-2.5 px-3">Asal &rarr; Tujuan</th>
+                    <th class="py-2.5 px-3 text-right">UJ / Tarif Jual</th>
+                    <th class="py-2.5 px-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="masterRoutesTableBody" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- SUB-TAB 2: MASTER ARMADA & DRIVER -->
       <div id="masterFleetsPane" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <!-- Form Tambah / Edit Armada -->
         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
           <div class="flex justify-between items-center border-b pb-2.5">
             <h3 id="fleetFormTitle" class="text-sm font-bold text-slate-800">Tambah Armada & Driver</h3>
@@ -632,7 +693,6 @@
           </form>
         </div>
 
-        <!-- Tabel Daftar Armada & Driver -->
         <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Master_Armada</h3>
@@ -650,6 +710,76 @@
                 </tr>
               </thead>
               <tbody id="masterFleetsTableBody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3: KELOLA PENGGUNA (Master_Users) -->
+      <div id="masterUsersPane" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
+          <div class="flex justify-between items-center border-b pb-2.5">
+            <h3 id="userFormTitle" class="text-sm font-bold text-slate-800">Tambah / Edit Akun Pengguna</h3>
+            <button type="button" id="cancelEditUserBtn" onclick="resetUserForm()"
+              class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
+          </div>
+          <form id="masterUserForm" class="space-y-3">
+            <input type="hidden" id="mu_row_number" value="0" />
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Username *</label>
+              <input type="text" id="mu_username" required placeholder="Contoh: dede"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold lowercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Password *</label>
+              <input type="text" id="mu_password" required placeholder="Password / PIN login"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Tampil (Jejak Audit) *</label>
+              <input type="text" id="mu_display_name" required placeholder="Contoh: Dede"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Hak Akses (Role)</label>
+                <select id="mu_role" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white">
+                  <option value="ADMIN_POD">ADMIN_POD</option>
+                  <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Status Akun</label>
+                <select id="mu_status" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white">
+                  <option value="AKTIF">AKTIF</option>
+                  <option value="NONAKTIF">NONAKTIF</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" id="saveMasterUserBtn"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
+              Simpan Akun Pengguna
+            </button>
+          </form>
+        </div>
+
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div class="p-4 border-b border-slate-200 bg-slate-50">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Akun Pengguna TMS (Master_Users)</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                <tr>
+                  <th class="py-2.5 px-4">Username</th>
+                  <th class="py-2.5 px-4">Nama Tampil</th>
+                  <th class="py-2.5 px-4">Password</th>
+                  <th class="py-2.5 px-4">Role</th>
+                  <th class="py-2.5 px-4">Status</th>
+                  <th class="py-2.5 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="masterUsersTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
           </div>
         </div>
@@ -691,12 +821,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat (Opsional)</label>
-            <input type="text" id="edit_asal" placeholder="Asal muat (bisa dikosongkan)..."
+            <input type="text" id="edit_asal" placeholder="Asal muat..."
               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500" />
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar (Opsional)</label>
-            <input type="text" id="edit_tujuan" placeholder="Tujuan bongkar (bisa dikosongkan)..."
+            <input type="text" id="edit_tujuan" placeholder="Tujuan bongkar..."
               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500" />
           </div>
         </div>
@@ -763,7 +893,7 @@
             <span id="pod_info_sj" class="font-mono font-semibold text-slate-800">-</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-slate-500">Customer / Rute:</span>
+            <span class="text-slate-500">Project & Rute:</span>
             <span id="pod_info_customer" class="font-semibold text-slate-800">-</span>
           </div>
           <div class="flex justify-between pt-1 border-t border-slate-200/80">
@@ -807,7 +937,7 @@
     </div>
   </div>
 
-  <!-- MODAL 2B: UPDATE STATUS POD MASSAL (BULK UPDATE) -->
+  <!-- MODAL 2B: UPDATE STATUS POD MASSAL -->
   <div id="bulkPodModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
     <div class="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden my-6">
       <div class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center">
@@ -848,7 +978,7 @@
     </div>
   </div>
 
-  <!-- MODAL 3: PROSES PENAGIHAN MASSAL (BATCH BILLING) -->
+  <!-- MODAL 3: PROSES PENAGIHAN MASSAL -->
   <div id="batchBillingModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
     <div class="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden my-6">
       <div class="bg-blue-700 text-white px-5 py-3.5 flex justify-between items-center">
@@ -905,13 +1035,23 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
     }
 
-    let activePin = sessionStorage.getItem("tms_pod_pin") || "";
+    let currentUser = null;
+    try {
+      const savedAuth = sessionStorage.getItem("tms_auth_user");
+      if (savedAuth) currentUser = JSON.parse(savedAuth);
+    } catch (e) {
+      currentUser = null;
+    }
+
     let masterRoutes = [];
     let masterFleets = [];
+    let masterUsers = [];
     let allOrders = [];
     let currentFilteredOrders = [];
     let currentFilter = "ALL";
     let selectedPodRows = new Set();
+    let selectedMasterRouteRows = new Set();
+    let currentFilteredMasterRoutes = [];
 
     let allBillings = [];
     let currentFilteredBillings = [];
@@ -922,17 +1062,85 @@
     document.addEventListener("DOMContentLoaded", () => {
       setTodayDate();
       resetSjContainerToSingleRow();
-      if (activePin) verifyAndLoad(activePin);
+      if (currentUser && currentUser.username && currentUser.password) {
+        verifyAndLogin(currentUser.username, currentUser.password, true);
+      }
     });
 
-    function formatNowTimestamp() {
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2, "0");
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const yyyy = now.getFullYear();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const min = String(now.getMinutes()).padStart(2, "0");
-      return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    function isSuperAdmin() {
+      return currentUser && currentUser.role === "SUPER_ADMIN";
+    }
+
+    function isRowLockedForCurrentUser(item) {
+      return item.status_gr === "OK GR" && !isSuperAdmin();
+    }
+
+    function applyRolePermissionsUI() {
+      if (!currentUser) return;
+      document.getElementById("activeUserDisplay").textContent = `Halo, ${currentUser.display_name}`;
+      document.getElementById("activeUserRoleBadge").textContent =
+        currentUser.role === "SUPER_ADMIN" ? "SUPER ADMIN" : "ADMIN POD";
+
+      const masterBtn = document.getElementById("tabBtnMaster");
+      if (isSuperAdmin()) {
+        masterBtn.classList.remove("hidden");
+      } else {
+        masterBtn.classList.add("hidden");
+      }
+    }
+
+    // --- LOGIN & LOGOUT ---
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uname = document.getElementById("loginUsername").value.trim();
+      const pwd = document.getElementById("loginPassword").value.trim();
+      await verifyAndLogin(uname, pwd, false);
+    });
+
+    async function verifyAndLogin(uname, pwd, isAutoResume) {
+      const btn = document.getElementById("loginSubmitBtn");
+      const errEl = document.getElementById("loginError");
+      if (!isAutoResume) {
+        btn.disabled = true;
+        btn.textContent = "Memeriksa Akun...";
+      }
+      errEl.classList.add("hidden");
+
+      const result = await loadAllData(uname, pwd);
+      if (result.ok) {
+        currentUser = {
+          username: uname.toLowerCase(),
+          password: pwd,
+          display_name: result.user.display_name,
+          role: result.user.role
+        };
+        sessionStorage.setItem("tms_auth_user", JSON.stringify(currentUser));
+        applyRolePermissionsUI();
+        document.getElementById("loginOverlay").classList.add("hidden");
+        document.getElementById("appWrapper").classList.remove("hidden");
+      } else {
+        sessionStorage.removeItem("tms_auth_user");
+        currentUser = null;
+        errEl.textContent = result.message || "Username atau Password salah!";
+        errEl.classList.remove("hidden");
+        document.getElementById("loginPassword").value = "";
+      }
+
+      if (!isAutoResume) {
+        btn.disabled = false;
+        btn.textContent = "Masuk ke Sistem";
+      }
+    }
+
+    function logoutApp() {
+      sessionStorage.removeItem("tms_auth_user");
+      currentUser = null;
+      selectedPodRows.clear();
+      selectedBillingKeys.clear();
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("appWrapper").classList.add("hidden");
+      document.getElementById("loginOverlay").classList.remove("hidden");
+      switchTab("order");
     }
 
     function setTodayDate() {
@@ -958,7 +1166,6 @@
       });
     });
 
-    // --- HELPER TANGGAL & AGING KETERLAMBATAN ---
     function toLocalIsoDate(dateObj) {
       const yyyy = dateObj.getFullYear();
       const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -1079,6 +1286,7 @@
 
       const matched = resolveMasterRoute(preset.routeCode || "");
       const finalRoute = matched ? matched.customer : (preset.routeCode || "");
+      const projLabel = matched ? matched.project : "-";
       const asalVal = matched && matched.origin && !matched.origin.toUpperCase().startsWith("NONE") ? matched.origin : "";
       const tujuanVal = matched && matched.destination && !matched.destination.toUpperCase().startsWith("NONE") ? matched.destination : "";
       const ujVal = matched ? matched.uang_jalan : 0;
@@ -1131,7 +1339,8 @@
             <input type="text" name="row_tujuan[]" value="${tujuanVal}" placeholder="Tujuan Bongkar (Opsional)"
               class="w-full px-2.5 py-1 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
-          <div class="sm:col-span-6 flex flex-wrap items-center justify-end gap-3 text-[11px]">
+          <div class="sm:col-span-6 flex flex-wrap items-center justify-end gap-2.5 text-[11px]">
+            <span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold">Project: <span class="row-project-label">${projLabel}</span></span>
             <span class="text-slate-500">UJ: <b class="row-uj-label text-slate-700">Rp ${ujVal.toLocaleString("id-ID")}</b></span>
             <span class="text-slate-500">Tarif: <b class="row-tarif-label text-emerald-700">Rp ${tarifVal.toLocaleString("id-ID")}</b></span>
           </div>
@@ -1151,6 +1360,7 @@
       const matched = resolveMasterRoute(inputEl.value);
       const asalEl = row.querySelector('input[name="row_asal[]"]');
       const tujuanEl = row.querySelector('input[name="row_tujuan[]"]');
+      const projLabel = row.querySelector(".row-project-label");
       const ujLabel = row.querySelector(".row-uj-label");
       const tarifLabel = row.querySelector(".row-tarif-label");
 
@@ -1161,9 +1371,11 @@
         if (matched.destination && !matched.destination.toUpperCase().startsWith("NONE")) {
           tujuanEl.value = matched.destination;
         }
+        projLabel.textContent = matched.project || "-";
         ujLabel.textContent = "Rp " + matched.uang_jalan.toLocaleString("id-ID");
         tarifLabel.textContent = "Rp " + matched.base_rate.toLocaleString("id-ID");
       } else {
+        projLabel.textContent = "-";
         ujLabel.textContent = "Rp 0";
         tarifLabel.textContent = "Rp 0";
       }
@@ -1208,9 +1420,7 @@
       statusEl.classList.add("text-blue-700");
       statusEl.textContent = `Membaca ${files.length} file PDF...`;
 
-      parsedPdfItems.forEach(item => {
-        if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
-      });
+      parsedPdfItems.forEach(item => { if (item.blobUrl) URL.revokeObjectURL(item.blobUrl); });
       parsedPdfItems = [];
 
       const seenDocNos = new Set();
@@ -1265,13 +1475,11 @@
 
             if (docNo || dateIso || routeCode) {
               const normalizedKey = docNo.toUpperCase();
-
               if (normalizedKey && seenDocNos.has(normalizedKey)) {
                 const existingItem = parsedPdfItems.find(it => it.docNo.toUpperCase() === normalizedKey);
                 if (existingItem) existingItem.pageCount = (existingItem.pageCount || 1) + 1;
                 continue;
               }
-
               if (normalizedKey) seenDocNos.add(normalizedKey);
 
               const alreadyInDb = normalizedKey
@@ -1419,43 +1627,9 @@
       syncAllRowSpjNumbers();
     }
 
-    // --- AUTENTIKASI & NAVIGASI TAB ---
-    document.getElementById("pinForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await verifyAndLoad(document.getElementById("pinInput").value.trim());
-    });
-
-    async function verifyAndLoad(pinToTest) {
-      const btn = document.getElementById("pinSubmitBtn");
-      const errEl = document.getElementById("pinError");
-      btn.disabled = true;
-      btn.textContent = "Memeriksa PIN...";
-      errEl.classList.add("hidden");
-
-      const ok = await loadAllData(pinToTest);
-      if (ok) {
-        activePin = pinToTest;
-        sessionStorage.setItem("tms_pod_pin", activePin);
-        document.getElementById("pinOverlay").classList.add("hidden");
-        document.getElementById("appWrapper").classList.remove("hidden");
-      } else {
-        sessionStorage.removeItem("tms_pod_pin");
-        errEl.classList.remove("hidden");
-        document.getElementById("pinInput").value = "";
-      }
-      btn.disabled = false;
-      btn.textContent = "Buka Sistem";
-    }
-
-    function lockApp() {
-      sessionStorage.removeItem("tms_pod_pin");
-      activePin = "";
-      document.getElementById("pinInput").value = "";
-      document.getElementById("appWrapper").classList.add("hidden");
-      document.getElementById("pinOverlay").classList.remove("hidden");
-    }
-
     function switchTab(tab) {
+      if (tab === "master" && !isSuperAdmin()) return;
+
       const views = {
         order: document.getElementById("viewOrder"),
         pod: document.getElementById("viewPod"),
@@ -1486,19 +1660,25 @@
       if (tab === "master") {
         renderMasterRoutesTable();
         renderMasterFleetsTable();
+        renderMasterUsersTable();
       }
     }
 
-    async function loadAllData(pin) {
+    async function loadAllData(overrideUser, overridePass) {
+      const uname = overrideUser || (currentUser && currentUser.username) || "";
+      const pwd = overridePass || (currentUser && currentUser.password) || "";
       const refreshBtn = document.getElementById("refreshBtn");
       if (refreshBtn) refreshBtn.textContent = "Memuat...";
 
       try {
-        const res = await fetch(`${APPS_SCRIPT_URL}?pin=${encodeURIComponent(pin)}`);
+        const url = `${APPS_SCRIPT_URL}?username=${encodeURIComponent(uname)}&password=${encodeURIComponent(pwd)}`;
+        const res = await fetch(url);
         const json = await res.json();
+
         if (json.status === "success") {
           masterRoutes = json.routes || [];
           masterFleets = json.fleets || [];
+          masterUsers = json.users || [];
           allOrders = json.orders || [];
           allBillings = json.billings || [];
 
@@ -1510,7 +1690,6 @@
           populateDropdowns();
           refreshAllRowRates();
 
-          // KPI POD
           document.getElementById("kpiTotal").textContent = (json.summary?.total || 0).toLocaleString("id-ID");
           document.getElementById("kpiBelum").textContent = (json.summary?.belum_kembali || 0).toLocaleString("id-ID");
           document.getElementById("kpiSjAda").textContent = (json.summary?.sj_ada || 0).toLocaleString("id-ID");
@@ -1518,7 +1697,6 @@
           document.getElementById("kpiOpen").textContent = (json.summary?.open_gr || 0).toLocaleString("id-ID");
           document.getElementById("kpiOk").textContent = (json.summary?.ok_gr || 0).toLocaleString("id-ID");
 
-          // KPI Penagihan
           const bSum = json.billing_summary || {};
           document.getElementById("navBillingBadge").textContent = (bSum.belum_ditagih || 0).toLocaleString("id-ID");
           document.getElementById("billKpiTotal").textContent = (bSum.total || 0).toLocaleString("id-ID");
@@ -1526,19 +1704,20 @@
           document.getElementById("billKpiSudah").textContent = ((bSum.sudah_ditagih || 0) + (bSum.lunas || 0)).toLocaleString("id-ID");
           document.getElementById("billKpiNominal").textContent = "Rp " + (bSum.nominal_belum_ditagih || 0).toLocaleString("id-ID");
 
-          // Counter Master Data
           document.getElementById("masterRouteCount").textContent = masterRoutes.length.toLocaleString("id-ID");
           document.getElementById("masterFleetCount").textContent = masterFleets.length.toLocaleString("id-ID");
+          document.getElementById("masterUserCount").textContent = masterUsers.length.toLocaleString("id-ID");
 
           renderTable();
           renderBillingTable();
           renderMasterRoutesTable();
           renderMasterFleetsTable();
-          return true;
+          renderMasterUsersTable();
+          return { ok: true, user: json.user };
         }
-        return false;
+        return { ok: false, message: json.message };
       } catch (err) {
-        return false;
+        return { ok: false, message: "Gagal terhubung ke server." };
       } finally {
         if (refreshBtn) refreshBtn.textContent = "Refresh";
       }
@@ -1547,16 +1726,25 @@
     function populateDropdowns() {
       const custList = document.getElementById("customerList");
       const filterRouteList = document.getElementById("filterRouteList");
+      const projectDatalist = document.getElementById("projectDatalist");
       custList.innerHTML = "";
       filterRouteList.innerHTML = "";
+      projectDatalist.innerHTML = "";
 
       const seenCust = new Set();
+      const projectCountsMaster = {};
+      const projectCountsOrders = {};
+      const projectCountsBilling = {};
+
       masterRoutes.forEach(r => {
+        const p = (r.project || "UMUM").toUpperCase();
+        projectCountsMaster[p] = (projectCountsMaster[p] || 0) + 1;
+
         if (!seenCust.has(r.customer)) {
           seenCust.add(r.customer);
           const opt1 = document.createElement("option");
           opt1.value = r.customer;
-          opt1.label = `Tarif: Rp ${r.base_rate.toLocaleString("id-ID")} | UJ: Rp ${r.uang_jalan.toLocaleString("id-ID")}`;
+          opt1.label = `[${p}] Tarif: Rp ${r.base_rate.toLocaleString("id-ID")} | UJ: Rp ${r.uang_jalan.toLocaleString("id-ID")}`;
           custList.appendChild(opt1);
 
           const opt2 = document.createElement("option");
@@ -1566,6 +1754,8 @@
       });
 
       allOrders.forEach(o => {
+        const p = (o.project || "UMUM").toUpperCase();
+        projectCountsOrders[p] = (projectCountsOrders[p] || 0) + 1;
         if (o.customer && !seenCust.has(o.customer)) {
           seenCust.add(o.customer);
           const opt2 = document.createElement("option");
@@ -1573,6 +1763,41 @@
           filterRouteList.appendChild(opt2);
         }
       });
+
+      allBillings.forEach(b => {
+        const p = (b.project || "UMUM").toUpperCase();
+        projectCountsBilling[p] = (projectCountsBilling[p] || 0) + 1;
+      });
+
+      const allProjectNames = Array.from(new Set([
+        ...Object.keys(projectCountsMaster),
+        ...Object.keys(projectCountsOrders)
+      ])).sort();
+
+      allProjectNames.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p;
+        projectDatalist.appendChild(opt);
+      });
+
+      const fillProjectSelect = (selectId, countMap) => {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const prevVal = sel.value || "ALL";
+        sel.innerHTML = `<option value="ALL">Semua Project</option>`;
+        allProjectNames.forEach(p => {
+          const cnt = countMap[p] || 0;
+          const opt = document.createElement("option");
+          opt.value = p;
+          opt.textContent = `${p} (${cnt.toLocaleString("id-ID")})`;
+          sel.appendChild(opt);
+        });
+        sel.value = allProjectNames.includes(prevVal) ? prevVal : "ALL";
+      };
+
+      fillProjectSelect("podProjectFilter", projectCountsOrders);
+      fillProjectSelect("billProjectFilter", projectCountsBilling);
+      fillProjectSelect("masterProjectFilter", projectCountsMaster);
 
       const nopolList = document.getElementById("nopolList");
       nopolList.innerHTML = "";
@@ -1641,10 +1866,12 @@
         const kgVal = row.querySelector('input[name="sj_kg[]"]').value.trim();
         const asalVal = row.querySelector('input[name="row_asal[]"]').value.trim();
         const tujuanVal = row.querySelector('input[name="row_tujuan[]"]').value.trim();
+        const matched = resolveMasterRoute(custVal);
 
         return {
           no_spj: spjVal,
           tgl_muat: tglVal,
+          project: matched ? matched.project : "",
           customer: custVal,
           asal: asalVal,
           tujuan: tujuanVal,
@@ -1669,11 +1896,13 @@
           btn.textContent = `Menyimpan ${item.no_spj} (${i + 1}/${orderItems.length})...`;
 
           const payload = {
-            pin: activePin,
+            username: currentUser.username,
+            password: currentUser.password,
             action: "CREATE_ORDER",
             data: {
               no_spj: item.no_spj,
               tgl_muat: item.tgl_muat,
+              project: item.project,
               customer: item.customer,
               asal: item.asal,
               tujuan: item.tujuan,
@@ -1696,13 +1925,13 @@
         }
 
         alertEl.className = "text-sm font-semibold text-emerald-600";
-        alertEl.textContent = `Berhasil! ${savedSpjList.join(", ")} tersimpan di Google Sheets.`;
+        alertEl.textContent = `Berhasil! ${savedSpjList.join(", ")} tersimpan oleh ${currentUser.display_name}.`;
 
         document.getElementById("orderForm").reset();
         clearPdfPreview();
         setTodayDate();
         resetSjContainerToSingleRow();
-        await loadAllData(activePin);
+        await loadAllData();
       } catch (err) {
         alertEl.className = "text-sm font-semibold text-red-600";
         alertEl.textContent = "Gagal menyimpan: " + err.message;
@@ -1712,7 +1941,7 @@
       }
     });
 
-    // --- VERIFIKASI POD + BULK UPDATE + REMINDER AGING ---
+    // --- VERIFIKASI POD + KUNCI OK GR BAGI ADMIN_POD ---
     function setFilter(status) {
       currentFilter = status;
       document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -1727,6 +1956,7 @@
       document.getElementById("podDateStart").value = "";
       document.getElementById("podDateEnd").value = "";
       document.getElementById("podAgingFilter").value = "ALL";
+      document.getElementById("podProjectFilter").value = "ALL";
       document.getElementById("filterRouteInput").value = "";
       document.getElementById("filterSjInput").value = "";
       document.getElementById("searchInput").value = "";
@@ -1746,11 +1976,8 @@
       const bar = document.getElementById("bulkPodActionBar");
       const countEl = document.getElementById("selectedPodCount");
       countEl.textContent = selectedPodRows.size.toLocaleString("id-ID");
-      if (selectedPodRows.size > 0) {
-        bar.classList.remove("hidden");
-      } else {
-        bar.classList.add("hidden");
-      }
+      if (selectedPodRows.size > 0) bar.classList.remove("hidden");
+      else bar.classList.add("hidden");
     }
 
     function toggleSinglePodRow(rowNumber, checked) {
@@ -1763,6 +1990,7 @@
     function toggleSelectAllPod(masterChk) {
       const visibleRows = currentFilteredOrders.slice(0, 300);
       visibleRows.forEach(item => {
+        if (isRowLockedForCurrentUser(item)) return;
         const r = Number(item.row_number);
         if (masterChk.checked) selectedPodRows.add(r);
         else selectedPodRows.delete(r);
@@ -1809,7 +2037,8 @@
 
       const statusGr = document.getElementById("bulk_status_gr").value;
       const payload = {
-        pin: activePin,
+        username: currentUser.username,
+        password: currentUser.password,
         action: "BULK_UPDATE_POD",
         data: {
           row_numbers: Array.from(selectedPodRows),
@@ -1830,7 +2059,7 @@
           const masterChk = document.getElementById("selectAllPodChk");
           if (masterChk) masterChk.checked = false;
           closeBulkPodModal();
-          await loadAllData(activePin);
+          await loadAllData();
         } else {
           throw new Error(result.message);
         }
@@ -1847,6 +2076,7 @@
       const startIso = document.getElementById("podDateStart").value;
       const endIso = document.getElementById("podDateEnd").value;
       const agingMode = document.getElementById("podAgingFilter").value;
+      const projectSelected = document.getElementById("podProjectFilter").value;
       const routeQuery = document.getElementById("filterRouteInput").value.trim().toLowerCase();
       const sjQuery = document.getElementById("filterSjInput").value.trim().toLowerCase();
       const generalQuery = document.getElementById("searchInput").value.trim().toLowerCase();
@@ -1854,6 +2084,7 @@
       currentFilteredOrders = allOrders.filter(item => {
         const matchStatus = currentFilter === "ALL" || item.status_gr === currentFilter;
         const matchDate = matchDateRange(item, startIso, endIso);
+        const matchProject = projectSelected === "ALL" || (item.project || "UMUM").toUpperCase() === projectSelected;
 
         const agingDays = computeAgingDays(item);
         let matchAging = true;
@@ -1869,7 +2100,7 @@
           (item.asal || "").toLowerCase().includes(generalQuery) ||
           (item.tujuan || "").toLowerCase().includes(generalQuery);
 
-        return matchStatus && matchDate && matchAging && matchRoute && matchSj && matchGeneral;
+        return matchStatus && matchDate && matchProject && matchAging && matchRoute && matchSj && matchGeneral;
       });
 
       document.getElementById("filterCounter").textContent =
@@ -1879,7 +2110,7 @@
       updateBulkPodBar();
 
       if (currentFilteredOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Tidak ada data yang sesuai filter pencarian / rentang tanggal.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Tidak ada data yang sesuai filter pencarian / project / rentang tanggal.</td></tr>`;
         return;
       }
 
@@ -1887,7 +2118,8 @@
 
       tbody.innerHTML = visibleRows.map(item => {
         const badgeClass = getStatusBadgeClass(item.status_gr);
-        const isChecked = selectedPodRows.has(Number(item.row_number)) ? "checked" : "";
+        const locked = isRowLockedForCurrentUser(item);
+        const isChecked = (!locked && selectedPodRows.has(Number(item.row_number))) ? "checked" : "";
         const agingDays = computeAgingDays(item);
 
         let agingBadge = "";
@@ -1900,24 +2132,45 @@
         const kgDisplay = (item.kilogram !== "" && item.kilogram !== null && item.kilogram !== undefined)
           ? `<div class="text-[11px] font-semibold text-blue-700 mt-0.5">${Number(item.kilogram).toLocaleString("id-ID")} Kg</div>`
           : `<div class="text-[11px] text-slate-400 mt-0.5">- Kg</div>`;
+
+        const createdByBadge = item.created_by
+          ? `<div class="text-[10px] text-slate-400 mt-1">Input: ${item.created_by}</div>`
+          : "";
         const lastUpdatedBadge = item.last_updated
-          ? `<div class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] font-medium text-slate-600">&#128337; Diubah: <b>${item.last_updated}</b></div>`
+          ? `<div class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] font-medium text-slate-600">&#128337; Diubah: <b>${item.last_updated}</b></div>`
           : "";
         const itemJson = JSON.stringify(item).replace(/'/g, "&#39;");
+
+        const actionButtons = locked
+          ? `<span class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg text-[11px] font-bold" title="Terkunci karena status sudah OK GR">&#128274; Terkunci</span>`
+          : `<div class="inline-flex items-center gap-1.5">
+              <button onclick='openEditModal(${itemJson})'
+                class="px-2.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 font-semibold rounded-lg text-xs border border-amber-200 transition">
+                Edit
+              </button>
+              <button onclick='openPodModal(${itemJson})'
+                class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold rounded-lg text-xs border border-emerald-200 transition">
+                POD
+              </button>
+            </div>`;
 
         return `
           <tr class="hover:bg-slate-50 transition ${isChecked ? "bg-blue-50/70" : ""}">
             <td class="py-3 px-3 text-center">
-              <input type="checkbox" ${isChecked} onchange="toggleSinglePodRow(${item.row_number}, this.checked)"
-                class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+              <input type="checkbox" ${isChecked} ${locked ? "disabled" : ""} onchange="toggleSinglePodRow(${item.row_number}, this.checked)"
+                class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-30" />
             </td>
             <td class="py-3 px-4">
               <div class="font-mono font-bold text-xs text-slate-800">${item.no_spj}</div>
               <div class="text-xs text-slate-500">${item.tgl_muat}</div>
+              ${createdByBadge}
             </td>
             <td class="py-3 px-4">
-              <div class="font-semibold text-slate-800 text-xs">${item.customer}</div>
-              <div class="text-xs text-slate-500">${item.asal || "-"} &rarr; ${item.tujuan || "-"}</div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold">${item.project || "UMUM"}</span>
+                <span class="font-semibold text-slate-800 text-xs">${item.customer}</span>
+              </div>
+              <div class="text-xs text-slate-500 mt-0.5">${item.asal || "-"} &rarr; ${item.tujuan || "-"}</div>
             </td>
             <td class="py-3 px-4">
               <div class="font-bold text-xs text-slate-800">${item.nopol || "-"} ${item.jenis_armada ? `<span class="font-normal text-slate-500">(${item.jenis_armada})</span>` : ""}</div>
@@ -1936,16 +2189,7 @@
               ${lastUpdatedBadge}
             </td>
             <td class="py-3 px-4 text-right">
-              <div class="inline-flex items-center gap-1.5">
-                <button onclick='openEditModal(${itemJson})'
-                  class="px-2.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 font-semibold rounded-lg text-xs border border-amber-200 transition">
-                  Edit
-                </button>
-                <button onclick='openPodModal(${itemJson})'
-                  class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold rounded-lg text-xs border border-emerald-200 transition">
-                  POD
-                </button>
-              </div>
+              ${actionButtons}
             </td>
           </tr>
         `;
@@ -1960,6 +2204,7 @@
 
       const exportRows = currentFilteredOrders.map((item, idx) => ({
         "No": idx + 1,
+        "Project": item.project || "UMUM",
         "No_SPJ": item.no_spj,
         "Tgl_Muat": item.tgl_muat,
         "Umur_Trip_Hari": computeAgingDays(item),
@@ -1973,6 +2218,7 @@
         "Kilogram": item.kilogram !== "" ? Number(item.kilogram) : "",
         "Status_GR": item.status_gr,
         "Keterangan_Issue": item.keterangan_issue,
+        "Diinput_Oleh": item.created_by || "",
         "Terakhir_Diubah": item.last_updated || "",
         "Uang_Jalan": item.uang_jalan || 0,
         "Tarif_Jual": item.tarif_jual || 0
@@ -1983,8 +2229,9 @@
       XLSX.utils.book_append_sheet(workbook, worksheet, "Data_POD");
 
       const today = new Date().toISOString().slice(0, 10);
+      const projTag = document.getElementById("podProjectFilter").value;
       const statusSuffix = currentFilter === "ALL" ? "SEMUA" : currentFilter.replace(/\s+/g, "_");
-      XLSX.writeFile(workbook, `Rekap_POD_${statusSuffix}_${today}.xlsx`);
+      XLSX.writeFile(workbook, `Rekap_POD_${projTag}_${statusSuffix}_${today}.xlsx`);
     }
 
     // --- REKAP PENAGIHAN (OK GR) ---
@@ -2005,6 +2252,7 @@
     function resetBillingFilters() {
       document.getElementById("billDateStart").value = "";
       document.getElementById("billDateEnd").value = "";
+      document.getElementById("billProjectFilter").value = "ALL";
       document.getElementById("billRouteInput").value = "";
       document.getElementById("billSearchInput").value = "";
       document.getElementById("billDocSearchInput").value = "";
@@ -2022,6 +2270,7 @@
       const tbody = document.getElementById("billingTableBody");
       const startIso = document.getElementById("billDateStart").value;
       const endIso = document.getElementById("billDateEnd").value;
+      const projectSelected = document.getElementById("billProjectFilter").value;
       const routeQuery = document.getElementById("billRouteInput").value.trim().toLowerCase();
       const searchQuery = document.getElementById("billSearchInput").value.trim().toLowerCase();
       const docQuery = document.getElementById("billDocSearchInput").value.trim().toLowerCase();
@@ -2029,6 +2278,7 @@
       currentFilteredBillings = allBillings.filter(item => {
         const matchStatus = currentBillingFilter === "ALL" || item.status_tagih === currentBillingFilter;
         const matchDate = matchDateRange(item, startIso, endIso);
+        const matchProject = projectSelected === "ALL" || (item.project || "UMUM").toUpperCase() === projectSelected;
         const matchRoute = !routeQuery || (item.customer || "").toLowerCase().includes(routeQuery);
         const matchSearch = !searchQuery ||
           (item.no_surat_jalan || "").toLowerCase().includes(searchQuery) ||
@@ -2038,7 +2288,7 @@
           (item.no_bast || "").toLowerCase().includes(docQuery) ||
           (item.no_invoice || "").toLowerCase().includes(docQuery);
 
-        return matchStatus && matchDate && matchRoute && matchSearch && matchDoc;
+        return matchStatus && matchDate && matchProject && matchRoute && matchSearch && matchDoc;
       });
 
       document.getElementById("billingCounter").textContent =
@@ -2046,7 +2296,7 @@
         (currentFilteredBillings.length > 300 ? " (tampil 300 teratas)" : "");
 
       if (currentFilteredBillings.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Belum ada data OK GR yang sesuai filter / rentang tanggal penagihan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Belum ada data OK GR yang sesuai filter / project / rentang tanggal penagihan.</td></tr>`;
         updateSelectedBillingSummary();
         return;
       }
@@ -2069,8 +2319,11 @@
               <div class="text-xs text-slate-500">${item.tgl_muat}</div>
             </td>
             <td class="py-3 px-4">
-              <div class="font-bold text-xs text-slate-800">${item.customer}</div>
-              <div class="text-xs text-slate-500">${item.nopol || "-"} ${item.jenis_armada ? `(${item.jenis_armada})` : ""}</div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold">${item.project || "UMUM"}</span>
+                <span class="font-bold text-xs text-slate-800">${item.customer}</span>
+              </div>
+              <div class="text-xs text-slate-500 mt-0.5">${item.nopol || "-"} ${item.jenis_armada ? `(${item.jenis_armada})` : ""}</div>
             </td>
             <td class="py-3 px-4">
               <div class="font-mono text-xs font-semibold text-slate-700">${item.no_surat_jalan}</div>
@@ -2153,7 +2406,8 @@
       btn.textContent = "Menyimpan...";
 
       const payload = {
-        pin: activePin,
+        username: currentUser.username,
+        password: currentUser.password,
         action: "UPDATE_BILLING_BATCH",
         data: {
           status_tagih: document.getElementById("batch_status_tagih").value,
@@ -2175,7 +2429,7 @@
           selectedBillingKeys.clear();
           document.getElementById("selectAllBillingChk").checked = false;
           closeBatchBillingModal();
-          await loadAllData(activePin);
+          await loadAllData();
         } else {
           throw new Error(result.message);
         }
@@ -2197,6 +2451,7 @@
 
       const rows = dataToExport.map((item, idx) => ({
         "No": idx + 1,
+        "Project": item.project || "UMUM",
         "No_SPJ": item.no_spj,
         "Tgl_Muat": item.tgl_muat,
         "Customer / Kode Rute": item.customer,
@@ -2218,54 +2473,151 @@
       XLSX.utils.book_append_sheet(wb, ws, "Lampiran_Penagihan");
 
       const today = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `Lampiran_Penagihan_OK_GR_${today}.xlsx`);
+      const projTag = document.getElementById("billProjectFilter").value;
+      XLSX.writeFile(wb, `Lampiran_Penagihan_${projTag}_${today}.xlsx`);
     }
 
-    // --- MANAJEMEN MASTER DATA (RUTE & ARMADA) ---
+    // --- MANAJEMEN MASTER DATA & PENGELOMPOKAN PROJECT (SUPER_ADMIN) ---
     function switchMasterSubTab(sub) {
       const routePane = document.getElementById("masterRoutesPane");
       const fleetPane = document.getElementById("masterFleetsPane");
+      const userPane = document.getElementById("masterUsersPane");
+
       const routeBtn = document.getElementById("subTabRouteBtn");
       const fleetBtn = document.getElementById("subTabFleetBtn");
+      const userBtn = document.getElementById("subTabUserBtn");
 
-      if (sub === "routes") {
-        routePane.classList.remove("hidden");
-        fleetPane.classList.add("hidden");
-        routeBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition";
-        fleetBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
-      } else {
-        routePane.classList.add("hidden");
-        fleetPane.classList.remove("hidden");
-        fleetBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition";
-        routeBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+      const activeCls = "px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition";
+      const inactiveCls = "px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+
+      routePane.classList.toggle("hidden", sub !== "routes");
+      fleetPane.classList.toggle("hidden", sub !== "fleets");
+      userPane.classList.toggle("hidden", sub !== "users");
+
+      routeBtn.className = sub === "routes" ? activeCls : inactiveCls;
+      fleetBtn.className = sub === "fleets" ? activeCls : inactiveCls;
+      userBtn.className = sub === "users" ? activeCls : inactiveCls;
+    }
+
+    function updateBulkRouteProjectBar() {
+      const bar = document.getElementById("bulkRouteProjectBar");
+      document.getElementById("selectedRouteCount").textContent = selectedMasterRouteRows.size.toLocaleString("id-ID");
+      if (selectedMasterRouteRows.size > 0) bar.classList.remove("hidden");
+      else bar.classList.add("hidden");
+    }
+
+    function toggleSingleMasterRoute(rowNumber, checked) {
+      const r = Number(rowNumber);
+      if (checked) selectedMasterRouteRows.add(r);
+      else selectedMasterRouteRows.delete(r);
+      updateBulkRouteProjectBar();
+    }
+
+    function toggleSelectAllMasterRoutes(masterChk) {
+      currentFilteredMasterRoutes.forEach(r => {
+        const rowNum = Number(r.row_number);
+        if (masterChk.checked) selectedMasterRouteRows.add(rowNum);
+        else selectedMasterRouteRows.delete(rowNum);
+      });
+      renderMasterRoutesTable();
+    }
+
+    function clearRouteSelection() {
+      selectedMasterRouteRows.clear();
+      const masterChk = document.getElementById("selectAllMasterRoutesChk");
+      if (masterChk) masterChk.checked = false;
+      renderMasterRoutesTable();
+    }
+
+    async function applyBulkRouteProject() {
+      const projVal = document.getElementById("bulkRouteProjectInput").value.trim().toUpperCase();
+      if (!projVal) {
+        alert("Ketik atau pilih Nama Project tujuan terlebih dahulu.");
+        return;
+      }
+      if (selectedMasterRouteRows.size === 0) return;
+
+      const btn = document.getElementById("applyBulkRouteProjectBtn");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            username: currentUser.username,
+            password: currentUser.password,
+            action: "BULK_UPDATE_ROUTE_PROJECT",
+            data: {
+              row_numbers: Array.from(selectedMasterRouteRows),
+              project: projVal
+            }
+          })
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          document.getElementById("bulkRouteProjectInput").value = "";
+          clearRouteSelection();
+          await loadAllData();
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        alert("Gagal memperbarui Project massal: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Simpan Project Massal";
       }
     }
 
     function renderMasterRoutesTable() {
       const tbody = document.getElementById("masterRoutesTableBody");
+      const projFilter = document.getElementById("masterProjectFilter")?.value || "ALL";
       const q = (document.getElementById("searchMasterRouteInput")?.value || "").trim().toLowerCase();
-      const filtered = masterRoutes.filter(r =>
-        !q ||
-        (r.customer || "").toLowerCase().includes(q) ||
-        (r.origin || "").toLowerCase().includes(q) ||
-        (r.destination || "").toLowerCase().includes(q) ||
-        (r.vehicle_type || "").toLowerCase().includes(q)
-      );
 
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Tidak ada data Master_Tarif.</td></tr>`;
+      currentFilteredMasterRoutes = masterRoutes.filter(r => {
+        const matchProj = projFilter === "ALL" || (r.project || "UMUM").toUpperCase() === projFilter;
+        const matchQ = !q ||
+          (r.customer || "").toLowerCase().includes(q) ||
+          (r.project || "").toLowerCase().includes(q) ||
+          (r.origin || "").toLowerCase().includes(q) ||
+          (r.destination || "").toLowerCase().includes(q) ||
+          (r.vehicle_type || "").toLowerCase().includes(q);
+        return matchProj && matchQ;
+      });
+
+      const counterEl = document.getElementById("masterRouteFilteredCounter");
+      if (counterEl) counterEl.textContent = `Tampil ${currentFilteredMasterRoutes.length} rute`;
+
+      updateBulkRouteProjectBar();
+
+      if (currentFilteredMasterRoutes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Tidak ada data Master_Tarif yang cocok.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = filtered.map(r => {
+      tbody.innerHTML = currentFilteredMasterRoutes.map(r => {
         const rJson = JSON.stringify(r).replace(/'/g, "&#39;");
+        const isChecked = selectedMasterRouteRows.has(Number(r.row_number)) ? "checked" : "";
         return `
-          <tr class="hover:bg-slate-50">
-            <td class="py-2.5 px-3 font-bold text-slate-800">${r.customer}</td>
+          <tr class="hover:bg-slate-50 ${isChecked ? "bg-indigo-50/60" : ""}">
+            <td class="py-2.5 px-3 text-center">
+              <input type="checkbox" ${isChecked} onchange="toggleSingleMasterRoute(${r.row_number}, this.checked)"
+                class="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600" />
+            </td>
+            <td class="py-2.5 px-3">
+              <span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-extrabold">${r.project || "UMUM"}</span>
+            </td>
+            <td class="py-2.5 px-3">
+              <div class="font-bold text-slate-800">${r.customer}</div>
+              <div class="text-[11px] text-slate-500">${r.vehicle_type || "-"}</div>
+            </td>
             <td class="py-2.5 px-3 text-slate-600">${r.origin || "-"} &rarr; ${r.destination || "-"}</td>
-            <td class="py-2.5 px-3 text-slate-600">${r.vehicle_type || "-"}</td>
-            <td class="py-2.5 px-3 text-right font-mono">Rp ${(r.uang_jalan || 0).toLocaleString("id-ID")}</td>
-            <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">Rp ${(r.base_rate || 0).toLocaleString("id-ID")}</td>
+            <td class="py-2.5 px-3 text-right font-mono">
+              <div class="text-[11px] text-slate-500">UJ: Rp ${(r.uang_jalan || 0).toLocaleString("id-ID")}</div>
+              <div class="font-bold text-emerald-700">Rp ${(r.base_rate || 0).toLocaleString("id-ID")}</div>
+            </td>
             <td class="py-2.5 px-3 text-right">
               <button type="button" onclick='editMasterRoute(${rJson})'
                 class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded font-semibold">
@@ -2279,6 +2631,7 @@
 
     function editMasterRoute(r) {
       document.getElementById("mr_row_number").value = r.row_number || 0;
+      document.getElementById("mr_project").value = r.project || "UMUM";
       document.getElementById("mr_customer").value = r.customer || "";
       document.getElementById("mr_origin").value = r.origin || "";
       document.getElementById("mr_destination").value = r.destination || "";
@@ -2306,10 +2659,12 @@
       btn.textContent = "Menyimpan...";
 
       const payload = {
-        pin: activePin,
+        username: currentUser.username,
+        password: currentUser.password,
         action: "SAVE_MASTER_ROUTE",
         data: {
           row_number: Number(document.getElementById("mr_row_number").value || 0),
+          project: document.getElementById("mr_project").value.trim().toUpperCase(),
           customer: document.getElementById("mr_customer").value.trim(),
           origin: document.getElementById("mr_origin").value.trim(),
           destination: document.getElementById("mr_destination").value.trim(),
@@ -2328,7 +2683,7 @@
         const result = await res.json();
         if (result.status === "success") {
           resetMasterRouteForm();
-          await loadAllData(activePin);
+          await loadAllData();
         } else {
           throw new Error(result.message);
         }
@@ -2399,7 +2754,8 @@
       btn.textContent = "Menyimpan...";
 
       const payload = {
-        pin: activePin,
+        username: currentUser.username,
+        password: currentUser.password,
         action: "SAVE_MASTER_FLEET",
         data: {
           row_number: Number(document.getElementById("mf_row_number").value || 0),
@@ -2418,7 +2774,7 @@
         const result = await res.json();
         if (result.status === "success") {
           resetMasterFleetForm();
-          await loadAllData(activePin);
+          await loadAllData();
         } else {
           throw new Error(result.message);
         }
@@ -2430,10 +2786,118 @@
       }
     });
 
+    // --- KELOLA USER (SUPER_ADMIN) ---
+    function renderMasterUsersTable() {
+      const tbody = document.getElementById("masterUsersTableBody");
+      if (!tbody) return;
+      if (masterUsers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Belum ada data pengguna.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = masterUsers.map(u => {
+        const uJson = JSON.stringify(u).replace(/'/g, "&#39;");
+        const roleBadge = u.role === "SUPER_ADMIN"
+          ? "bg-purple-100 text-purple-800 border-purple-200"
+          : "bg-sky-100 text-sky-800 border-sky-200";
+        const statusBadge = u.status === "AKTIF"
+          ? "bg-emerald-100 text-emerald-800"
+          : "bg-red-100 text-red-700";
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2.5 px-4 font-mono font-bold text-slate-800">${u.username}</td>
+            <td class="py-2.5 px-4 font-semibold text-slate-700">${u.display_name}</td>
+            <td class="py-2.5 px-4 font-mono text-slate-500">${u.password}</td>
+            <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded border text-[10px] font-bold ${roleBadge}">${u.role}</span></td>
+            <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusBadge}">${u.status}</span></td>
+            <td class="py-2.5 px-4 text-right">
+              <button type="button" onclick='editUser(${uJson})'
+                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded font-semibold">
+                Edit
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function editUser(u) {
+      document.getElementById("mu_row_number").value = u.row_number || 0;
+      document.getElementById("mu_username").value = u.username || "";
+      document.getElementById("mu_password").value = u.password || "";
+      document.getElementById("mu_display_name").value = u.display_name || "";
+      document.getElementById("mu_role").value = u.role || "ADMIN_POD";
+      document.getElementById("mu_status").value = u.status || "AKTIF";
+
+      document.getElementById("userFormTitle").textContent = `Edit Akun: ${u.username}`;
+      document.getElementById("saveMasterUserBtn").textContent = "Update Akun Pengguna";
+      document.getElementById("cancelEditUserBtn").classList.remove("hidden");
+    }
+
+    function resetUserForm() {
+      document.getElementById("masterUserForm").reset();
+      document.getElementById("mu_row_number").value = "0";
+      document.getElementById("userFormTitle").textContent = "Tambah / Edit Akun Pengguna";
+      document.getElementById("saveMasterUserBtn").textContent = "Simpan Akun Pengguna";
+      document.getElementById("cancelEditUserBtn").classList.add("hidden");
+    }
+
+    document.getElementById("masterUserForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("saveMasterUserBtn");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      const payload = {
+        username: currentUser.username,
+        password: currentUser.password,
+        action: "SAVE_USER",
+        data: {
+          row_number: Number(document.getElementById("mu_row_number").value || 0),
+          username: document.getElementById("mu_username").value.trim().toLowerCase(),
+          password: document.getElementById("mu_password").value.trim(),
+          display_name: document.getElementById("mu_display_name").value.trim(),
+          role: document.getElementById("mu_role").value,
+          status: document.getElementById("mu_status").value
+        }
+      };
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          if (payload.data.username === currentUser.username) {
+            currentUser.password = payload.data.password;
+            currentUser.display_name = payload.data.display_name;
+            sessionStorage.setItem("tms_auth_user", JSON.stringify(currentUser));
+            applyRolePermissionsUI();
+          }
+          resetUserForm();
+          await loadAllData();
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        alert("Gagal menyimpan akun pengguna: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Simpan Akun Pengguna";
+      }
+    });
+
     // --- MODAL EDIT & POD SATUAN ---
     function openEditModal(item) {
+      if (isRowLockedForCurrentUser(item)) {
+        alert("Status sudah OK GR dan terkunci bagi Admin POD.");
+        return;
+      }
       document.getElementById("edit_row_number").value = item.row_number;
-      document.getElementById("editModalSubtitle").textContent = `${item.no_spj} | Baris Sheets #${item.row_number}`;
+      document.getElementById("editModalSubtitle").textContent = `${item.no_spj} | Project: ${item.project || "UMUM"} | Baris #${item.row_number}`;
       document.getElementById("edit_no_spj").value = item.no_spj || "";
       document.getElementById("edit_tgl_muat").value = item.tgl_iso || "";
       document.getElementById("edit_customer").value = item.customer || "";
@@ -2463,10 +2927,10 @@
       btn.textContent = "Menyimpan...";
 
       const rowNumber = Number(document.getElementById("edit_row_number").value);
-      const updatedTimestamp = formatNowTimestamp();
 
       const payload = {
-        pin: activePin,
+        username: currentUser.username,
+        password: currentUser.password,
         action: "UPDATE_POD",
         data: {
           row_number: rowNumber,
@@ -2478,8 +2942,7 @@
           jenis_armada: document.getElementById("edit_jenis_armada").value.trim(),
           nama_driver: document.getElementById("edit_nama_driver").value.trim(),
           no_surat_jalan: document.getElementById("edit_sj_no").value.trim(),
-          kilogram: document.getElementById("edit_kilogram").value.trim(),
-          last_updated: updatedTimestamp
+          kilogram: document.getElementById("edit_kilogram").value.trim()
         }
       };
 
@@ -2492,7 +2955,7 @@
         const result = await res.json();
         if (result.status === "success") {
           closeEditModal();
-          await loadAllData(activePin);
+          await loadAllData();
         } else {
           throw new Error(result.message);
         }
@@ -2505,11 +2968,15 @@
     });
 
     function openPodModal(item) {
+      if (isRowLockedForCurrentUser(item)) {
+        alert("Status sudah OK GR dan terkunci bagi Admin POD.");
+        return;
+      }
       document.getElementById("pod_row_number").value = item.row_number;
       document.getElementById("podModalSubtitle").textContent = `${item.no_spj} | Baris Sheets #${item.row_number}`;
       document.getElementById("pod_info_spj").textContent = item.no_spj || "-";
       document.getElementById("pod_info_sj").textContent = item.no_surat_jalan || "-";
-      document.getElementById("pod_info_customer").textContent = item.customer || "-";
+      document.getElementById("pod_info_customer").textContent = `[${item.project || "UMUM"}] ${item.customer || "-"}`;
       document.getElementById("pod_info_last_updated").textContent = item.last_updated || "Belum pernah diubah";
       document.getElementById("pod_status_gr").value = item.status_gr || "BELUM KEMBALI";
       document.getElementById("pod_keterangan_issue").value = item.keterangan_issue || "";
@@ -2546,16 +3013,15 @@
 
       const rowNumber = Number(document.getElementById("pod_row_number").value);
       const statusGr = document.getElementById("pod_status_gr").value;
-      const updatedTimestamp = formatNowTimestamp();
 
       const payload = {
-        pin: activePin,
+        username: currentUser.username,
+        password: currentUser.password,
         action: "UPDATE_POD",
         data: {
           row_number: rowNumber,
           status_gr: statusGr,
-          keterangan_issue: statusGr === "OPEN GR" ? document.getElementById("pod_keterangan_issue").value.trim() : "",
-          last_updated: updatedTimestamp
+          keterangan_issue: statusGr === "OPEN GR" ? document.getElementById("pod_keterangan_issue").value.trim() : ""
         }
       };
 
@@ -2568,7 +3034,7 @@
         const result = await res.json();
         if (result.status === "success") {
           closePodModal();
-          await loadAllData(activePin);
+          await loadAllData();
         } else {
           throw new Error(result.message);
         }
