@@ -3,621 +3,548 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TMS Operasional, POD & Rekap Penagihan</title>
+  <title>TMS POD & Surat Jalan 2026</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased">
 
-  <!-- LAYAR LOGIN MULTI-USER -->
+  <!-- LOGIN OVERLAY -->
   <div id="loginOverlay" class="fixed inset-0 bg-slate-900 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-5">
-      <div class="text-center">
-        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto font-bold text-xl mb-3">
-          &#128274;
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-slate-900 text-white p-6 text-center border-b border-slate-800">
+        <div class="w-12 h-12 rounded-xl bg-blue-600 mx-auto flex items-center justify-center font-black text-xl mb-3 shadow-lg">
+          TMS
         </div>
-        <h2 class="text-lg font-bold text-slate-800">TMS Operasional, POD & Penagihan</h2>
-        <p class="text-xs text-slate-500 mt-1">Masuk menggunakan akun tim operasional</p>
+        <h1 class="text-lg font-bold tracking-tight">Sistem POD & Surat Jalan 2026</h1>
+        <p class="text-xs text-slate-400 mt-1">Silakan masuk menggunakan akun operasional Anda</p>
       </div>
-      <form id="loginForm" class="space-y-3.5">
+
+      <form id="loginForm" class="p-6 space-y-4">
+        <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-3.5 py-2.5 rounded-lg"></div>
+
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Username</label>
-          <input type="text" id="loginUsername" placeholder="Contoh: arghi / dede" required autofocus
-            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Username</label>
+          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Masukkan username..."
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
+
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
-          <input type="password" id="loginPassword" placeholder="••••••••" required
-            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
+          <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="Masukkan password..."
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-        <p id="loginError" class="text-xs font-semibold text-red-600 hidden text-center">Username atau Password salah!</p>
+
         <button type="submit" id="loginSubmitBtn"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-sm transition">
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-md transition">
           Masuk ke Sistem
         </button>
       </form>
     </div>
   </div>
 
-  <!-- KONTEN UTAMA APLIKASI -->
-  <div id="appWrapper" class="hidden">
-    <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-4">
-      <div class="flex flex-wrap items-center gap-6">
-        <div>
-          <h1 class="text-lg font-bold tracking-wide">TMS OPERASIONAL & POD</h1>
-          <p class="text-xs text-slate-400">Input SPJ (1 SPJ = 1 DN), Verifikasi POD & Rekap Penagihan</p>
+  <!-- MAIN APP WRAPPER -->
+  <div id="appWrapper" class="hidden min-h-screen flex flex-col">
+    <!-- NAVBAR -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-black text-sm shadow">
+            TMS
+          </div>
+          <div>
+            <h1 class="text-sm sm:text-base font-bold leading-tight">TMS POD & Surat Jalan 2026</h1>
+            <div class="flex items-center gap-2 text-[11px] text-slate-400">
+              <span id="activeUserDisplay">Halo, User</span>
+              <span>&bull;</span>
+              <span id="activeUserRoleBadge" class="px-1.5 py-0.2 rounded bg-slate-800 text-amber-400 font-bold">ROLE</span>
+            </div>
+          </div>
         </div>
-        <div class="flex flex-wrap gap-2 text-xs font-semibold">
+
+        <div class="flex flex-wrap items-center gap-2">
           <button type="button" id="tabBtnOrder" onclick="switchTab('order')"
-            class="px-3.5 py-2 rounded-lg bg-blue-600 text-white shadow-sm transition">
-            + Input Order
+            class="px-3.5 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition">
+            + Input Order / SPJ
           </button>
           <button type="button" id="tabBtnPod" onclick="switchTab('pod')"
-            class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            class="px-3.5 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
             Verifikasi POD
           </button>
           <button type="button" id="tabBtnBilling" onclick="switchTab('billing')"
-            class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex items-center gap-1.5">
+            class="px-3.5 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex items-center gap-1.5">
             <span>Rekap Penagihan (OK GR)</span>
-            <span id="navBillingBadge" class="px-1.5 py-0.2 bg-emerald-500 text-slate-950 rounded-full text-[10px] font-extrabold">0</span>
+            <span id="navBillingBadge" class="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black">0</span>
           </button>
-          <!-- TAB MASTER DATA (KHUSUS SUPER_ADMIN) -->
           <button type="button" id="tabBtnMaster" onclick="switchTab('master')"
-            class="hidden px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            class="hidden px-3.5 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
             Master Data & User
           </button>
+          <button type="button" id="refreshBtn" onclick="loadAllData()"
+            class="px-3 py-2 rounded-lg text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white transition">
+            Refresh
+          </button>
+          <button type="button" onclick="logoutApp()"
+            class="px-3 py-2 rounded-lg text-xs font-bold bg-red-600/90 hover:bg-red-600 text-white transition">
+            Keluar
+          </button>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="text-right">
-          <div id="activeUserDisplay" class="text-xs font-bold text-white">Halo, User</div>
-          <div id="activeUserRoleBadge" class="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">ROLE</div>
-        </div>
-        <button onclick="logoutApp()" title="Keluar Akun"
-          class="text-xs bg-red-950 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded-lg border border-red-800 transition font-semibold">
-          Keluar
-        </button>
-      </div>
-    </nav>
+    </header>
 
-    <!-- DATALIST GLOBAL -->
-    <datalist id="projectDatalist"></datalist>
+    <!-- DATALISTS -->
     <datalist id="customerList"></datalist>
     <datalist id="filterRouteList"></datalist>
+    <datalist id="projectDatalist"></datalist>
     <datalist id="nopolList"></datalist>
     <datalist id="armadaTypeList">
-      <option value="Cdd Engkel">
-      <option value="Fuso Wing Box">
-      <option value="Tronton Wing Box">
-      <option value="CDD Box">
-      <option value="CDE Box">
+      <option value="Blind Van"></option>
+      <option value="CDD Box"></option>
+      <option value="CDD Bak"></option>
+      <option value="CDD Long"></option>
+      <option value="Cdd Engkel"></option>
+      <option value="CDE Box"></option>
+      <option value="Fuso Box"></option>
+      <option value="Fuso Wing Box"></option>
+      <option value="Tronton Wing Box"></option>
     </datalist>
 
-    <!-- VIEW 1: INPUT ORDER -->
-    <section id="viewOrder" class="max-w-5xl mx-auto p-6">
-      <form id="orderForm" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-1 space-y-6">
 
-        <!-- KOTAK IMPORT OTOMATIS & PREVIEW HASIL BACA PDF -->
-        <div class="bg-blue-50/80 border-2 border-dashed border-blue-300 rounded-xl p-4 space-y-4">
-          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase">Auto-Fill PDF</span>
-                <h3 class="text-sm font-bold text-slate-800">Import & Preview PDF Trip Note / Delivery Note</h3>
-              </div>
-              <p class="text-xs text-slate-600">
-                Mendukung banyak DN sekaligus meski <b>Kode Rute & Project berbeda-beda</b>. Setiap DN unik mendapat <b>1 SPJ + Kode Rute masing-masing</b>.
-              </p>
-              <p id="pdfReadStatus" class="text-xs font-semibold text-blue-700 hidden"></p>
+      <!-- VIEW 1: INPUT ORDER / SPJ -->
+      <section id="viewOrder" class="space-y-5">
+        <!-- PDF AUTO PARSER -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-sm font-bold text-slate-800">Import Otomatis dari PDF Trip Note / Delivery Note</h2>
+              <p class="text-xs text-slate-500">Pilih 1 atau beberapa file PDF sekaligus untuk mengekstrak No. DN/Trip Note, Tanggal, dan Kode Rute secara otomatis.</p>
             </div>
-            <div class="shrink-0">
+            <label class="cursor-pointer px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition">
+              Pilih File PDF
               <input type="file" id="pdfFileInput" accept="application/pdf" multiple class="hidden" />
-              <button type="button" onclick="document.getElementById('pdfFileInput').click()"
-                class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-2">
-                <span>&#128196; Pilih File PDF</span>
-              </button>
-            </div>
+            </label>
           </div>
 
-          <div id="pdfPreviewPanel" class="hidden bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
-            <div class="bg-slate-800 text-white px-4 py-2.5 flex flex-wrap justify-between items-center gap-2">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span class="text-xs font-bold">Preview Hasil Pembacaan PDF (1 SPJ = 1 DN & Kode Rute Mandiri)</span>
-              </div>
+          <div id="pdfReadStatus" class="hidden text-xs font-semibold"></div>
+
+          <!-- PREVIEW PDF TABLE -->
+          <div id="pdfPreviewPanel" class="hidden border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold text-slate-700">Hasil Pembacaan Dokumen PDF</span>
               <div class="flex items-center gap-2">
                 <button type="button" onclick="clearPdfPreview()"
-                  class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[11px] font-semibold transition">
-                  Tutup / Reset
+                  class="px-3 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-xs font-semibold">
+                  Hapus Preview
                 </button>
                 <button type="button" onclick="applyPdfPreviewToForm()"
-                  class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold shadow-sm transition">
-                  &#10003; Terapkan ke Form Input
+                  class="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm">
+                  Terapkan ke Form Order
                 </button>
               </div>
             </div>
-
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
-                    <th class="py-2 px-3">File & Jenis</th>
-                    <th class="py-2 px-3">Target No. SPJ</th>
-                    <th class="py-2 px-3">No. SJ / DN (Bisa Diedit)</th>
+                <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                  <tr>
+                    <th class="py-2 px-3">File & Halaman</th>
+                    <th class="py-2 px-3">No. SPJ Otomatis</th>
+                    <th class="py-2 px-3">No. Surat Jalan / DN</th>
                     <th class="py-2 px-3">Tanggal Muat</th>
-                    <th class="py-2 px-3">Kode Rute DN Ini</th>
-                    <th class="py-2 px-3 text-right">Dokumen</th>
+                    <th class="py-2 px-3">Kode Rute</th>
+                    <th class="py-2 px-3 text-right">Pratinjau</th>
                   </tr>
                 </thead>
                 <tbody id="pdfPreviewBody" class="divide-y divide-slate-200"></tbody>
               </table>
             </div>
+          </div>
 
-            <div id="pdfViewerContainer" class="hidden border-t border-slate-200 bg-slate-100 p-3 space-y-2">
-              <div class="flex justify-between items-center">
-                <span id="pdfViewerTitle" class="text-xs font-bold text-slate-700">Pratinjau Dokumen PDF</span>
-                <button type="button" onclick="closePdfViewer()"
-                  class="text-xs font-bold text-red-600 hover:underline">Tutup Pratinjau PDF &times;</button>
-              </div>
-              <iframe id="pdfViewerFrame" class="w-full h-80 rounded-lg border border-slate-300 bg-white"></iframe>
+          <!-- PDF VIEWER IFRAME -->
+          <div id="pdfViewerContainer" class="hidden border border-slate-300 rounded-xl overflow-hidden bg-slate-800">
+            <div class="px-4 py-2 bg-slate-900 text-white flex justify-between items-center text-xs">
+              <span id="pdfViewerTitle" class="font-semibold">Pratinjau PDF</span>
+              <button type="button" onclick="closePdfViewer()" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 rounded font-bold">Tutup PDF</button>
             </div>
+            <iframe id="pdfViewerFrame" class="w-full h-96 bg-white"></iframe>
           </div>
         </div>
 
-        <!-- BAGIAN 1: INFORMASI SPJ AWAL & DEFAULT -->
-        <div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">1. Informasi SPJ Awal & Tanggal Default</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- FORM INPUT ORDER -->
+        <form id="orderForm" class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-5">
+          <div class="border-b border-slate-200 pb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor SPJ Awal (Otomatis Urut) *</label>
-              <input type="text" id="no_spj" required
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <h2 class="text-base font-bold text-slate-800">Form Input Order & Penerbitan SPJ</h2>
+              <p class="text-xs text-slate-500">Nomor SPJ otomatis berurutan untuk setiap baris Surat Jalan / DN.</p>
+            </div>
+            <span id="tglPreviewText" class="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200"></span>
+          </div>
+
+          <!-- DATA ARMADA & TANGGAL DEFAULT -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">No. SPJ Awal *</label>
+              <input type="text" id="no_spj" required placeholder="SPJ20260001"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Muat Default (dd/mm/yyyy) *</label>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Tanggal Muat Default *</label>
               <input type="date" id="tgl_muat" required
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <p id="tglPreviewText" class="text-[11px] text-slate-500 mt-1">Format tersimpan: -</p>
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Nopol Kendaraan</label>
+              <input list="nopolList" id="nopol_input" placeholder="Ketik / pilih Nopol..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs uppercase font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Armada</label>
+              <input list="armadaTypeList" id="vehicle_type" placeholder="Otomatis / pilih..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Nama Driver</label>
+              <input type="text" id="driver_name" placeholder="Nama driver..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
-        </div>
 
-        <!-- BAGIAN 2: PENUGASAN ARMADA & DRIVER -->
-        <div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 border-b pb-2">2. Penugasan Armada & Driver</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Polisi (Nopol) *</label>
-              <input list="nopolList" id="nopol_input" placeholder="Ketik atau pilih nopol..." required
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <!-- DAFTAR SURAT JALAN / DN -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Surat Jalan / DN dalam Trip Ini</h3>
+              <button type="button" id="addSjBtn"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition">
+                + Tambah Baris SJ / DN
+              </button>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
-              <input list="armadaTypeList" id="vehicle_type" placeholder="Pilih / ketik jenis armada..."
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver</label>
-              <input type="text" id="driver_name" placeholder="Otomatis / ketik nama driver"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+
+            <div id="sjContainer" class="space-y-3"></div>
           </div>
-        </div>
 
-        <!-- BAGIAN 3: RINCIAN BARIS SPJ, NO. DN, KODE RUTE & TARIF PER ITEM -->
-        <div>
-          <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b pb-2">
-            <div>
-              <h2 class="text-sm font-bold uppercase tracking-wider text-blue-600">3. Rincian SPJ, No. DN & Kode Rute (Bisa Berbeda per DN)</h2>
-              <p class="text-[11px] text-slate-500">Project otomatis terdeteksi sesuai Kode Rute yang dipilih di Master_Tarif.</p>
-            </div>
-            <button type="button" id="addSjBtn"
-              class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition">
-              + Tambah Baris SPJ / DN
+          <div class="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div id="formAlert" class="text-sm font-semibold"></div>
+            <button type="submit" id="submitBtn"
+              class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition">
+              Simpan Order & Terbitkan SPJ
             </button>
           </div>
+        </form>
+      </section>
 
-          <div id="sjContainer" class="space-y-3"></div>
-        </div>
-
-        <div class="pt-4 border-t flex items-center justify-between">
-          <div id="formAlert" class="text-sm font-medium"></div>
-          <button type="submit" id="submitBtn"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition">
-            Simpan Order & Terbitkan SPJ
-          </button>
-        </div>
-      </form>
-    </section>
-
-    <!-- VIEW 2: VERIFIKASI POD -->
-    <section id="viewPod" class="hidden max-w-7xl mx-auto p-6 space-y-5">
-      <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <div onclick="setFilter('ALL')" class="cursor-pointer bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
-          <p class="text-[11px] font-semibold text-slate-500 uppercase">Total SJ</p>
-          <p id="kpiTotal" class="text-xl font-bold text-slate-800 mt-1">0</p>
-        </div>
-        <div onclick="setFilter('BELUM KEMBALI')" class="cursor-pointer bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm hover:border-amber-400 transition">
-          <p class="text-[11px] font-semibold text-amber-600 uppercase">Belum Kembali</p>
-          <p id="kpiBelum" class="text-xl font-bold text-amber-600 mt-1">0</p>
-        </div>
-        <div onclick="setFilter('SJ ADA')" class="cursor-pointer bg-sky-50 p-3.5 rounded-xl border border-sky-200 shadow-sm hover:border-sky-400 transition">
-          <p class="text-[11px] font-bold text-sky-700 uppercase">SJ Ada</p>
-          <p id="kpiSjAda" class="text-xl font-bold text-sky-700 mt-1">0</p>
-        </div>
-        <div onclick="setFilter('SJ LENGKAP')" class="cursor-pointer bg-indigo-50 p-3.5 rounded-xl border border-indigo-200 shadow-sm hover:border-indigo-400 transition">
-          <p class="text-[11px] font-bold text-indigo-700 uppercase">SJ Lengkap</p>
-          <p id="kpiSjLengkap" class="text-xl font-bold text-indigo-700 mt-1">0</p>
-        </div>
-        <div onclick="setFilter('OPEN GR')" class="cursor-pointer bg-red-50 p-3.5 rounded-xl border border-red-200 shadow-sm hover:border-red-500 transition">
-          <p class="text-[11px] font-bold text-red-700 uppercase">OPEN GR</p>
-          <p id="kpiOpen" class="text-xl font-bold text-red-700 mt-1">0</p>
-        </div>
-        <div onclick="setFilter('OK GR')" class="cursor-pointer bg-emerald-50 p-3.5 rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-500 transition">
-          <p class="text-[11px] font-bold text-emerald-700 uppercase">OK GR</p>
-          <p id="kpiOk" class="text-xl font-bold text-emerald-700 mt-1">0</p>
-        </div>
-      </div>
-
-      <!-- BAR AKSI BULK UPDATE POD -->
-      <div id="bulkPodActionBar" class="hidden bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-4 border border-slate-700">
-        <div class="flex items-center gap-4">
-          <span class="px-3 py-1 bg-amber-500 text-slate-950 font-extrabold text-xs rounded-full">
-            <span id="selectedPodCount">0</span> Item POD Dipilih
-          </span>
-          <p class="text-xs text-slate-300">Ubah status GR secara serentak untuk seluruh baris yang dicentang.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="clearPodSelection()"
-            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-semibold transition">
-            Batal Pilih
-          </button>
-          <button type="button" onclick="openBulkPodModal()"
-            class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-sm transition">
-            Update Status POD Massal
-          </button>
-        </div>
-      </div>
-
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-        <div class="flex flex-wrap justify-between items-center gap-2">
-          <div class="flex flex-wrap gap-1.5 items-center">
-            <button data-status="ALL" onclick="setFilter('ALL')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">Semua</button>
-            <button data-status="BELUM KEMBALI" onclick="setFilter('BELUM KEMBALI')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Belum Kembali</button>
-            <button data-status="SJ ADA" onclick="setFilter('SJ ADA')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">SJ Ada</button>
-            <button data-status="SUMMARY ADA" onclick="setFilter('SUMMARY ADA')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Summary Ada</button>
-            <button data-status="SJ LENGKAP" onclick="setFilter('SJ LENGKAP')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">SJ Lengkap</button>
-            <button data-status="OPEN GR" onclick="setFilter('OPEN GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OPEN GR</button>
-            <button data-status="OK GR" onclick="setFilter('OK GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OK GR</button>
+      <!-- VIEW 2: VERIFIKASI POD -->
+      <section id="viewPod" class="hidden space-y-5">
+        <!-- KPI CARDS (6 KARTU TANPA SJ LENGKAP) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div onclick="setFilter('ALL')" class="cursor-pointer bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm hover:border-slate-400 transition">
+            <div class="text-[11px] font-bold text-slate-500 uppercase">Total Trip / SJ</div>
+            <div id="kpiTotal" class="text-xl font-black text-slate-800 mt-1">0</div>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <span id="filterCounter" class="text-xs font-semibold text-slate-500"></span>
-            <button onclick="resetAllFilters()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">
-              Reset Filter
-            </button>
-            <button onclick="exportFilteredToExcel()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm">
-              Export Excel (.xlsx)
-            </button>
-            <button onclick="loadAllData()" id="refreshBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
-              Refresh
-            </button>
+          <div onclick="setFilter('BELUM KEMBALI')" class="cursor-pointer bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm hover:border-amber-400 transition">
+            <div class="text-[11px] font-bold text-amber-700 uppercase">Belum Kembali</div>
+            <div id="kpiBelum" class="text-xl font-black text-amber-900 mt-1">0</div>
+          </div>
+          <div onclick="setFilter('SJ ADA')" class="cursor-pointer bg-sky-50 p-3.5 rounded-xl border border-sky-200 shadow-sm hover:border-sky-400 transition">
+            <div class="text-[11px] font-bold text-sky-700 uppercase">SJ Ada</div>
+            <div id="kpiSjAda" class="text-xl font-black text-sky-900 mt-1">0</div>
+          </div>
+          <div onclick="setFilter('SUMMARY ADA')" class="cursor-pointer bg-purple-50 p-3.5 rounded-xl border border-purple-200 shadow-sm hover:border-purple-400 transition">
+            <div class="text-[11px] font-bold text-purple-700 uppercase">Summary Ada</div>
+            <div id="kpiSummaryAda" class="text-xl font-black text-purple-900 mt-1">0</div>
+          </div>
+          <div onclick="setFilter('OPEN GR')" class="cursor-pointer bg-red-50 p-3.5 rounded-xl border border-red-200 shadow-sm hover:border-red-400 transition">
+            <div class="text-[11px] font-bold text-red-700 uppercase">Open GR (Kendala)</div>
+            <div id="kpiOpen" class="text-xl font-black text-red-900 mt-1">0</div>
+          </div>
+          <div onclick="setFilter('OK GR')" class="cursor-pointer bg-emerald-50 p-3.5 rounded-xl border border-emerald-200 shadow-sm hover:border-emerald-400 transition">
+            <div class="text-[11px] font-bold text-emerald-700 uppercase">OK GR (Siap Tagih)</div>
+            <div id="kpiOk" class="text-xl font-black text-emerald-900 mt-1">0</div>
           </div>
         </div>
 
-        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/80 flex flex-wrap items-end justify-between gap-3">
-          <div class="flex flex-wrap items-end gap-3">
+        <!-- FILTER & SEARCH BAR -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button type="button" data-status="ALL" onclick="setFilter('ALL')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">Semua</button>
+              <button type="button" data-status="BELUM KEMBALI" onclick="setFilter('BELUM KEMBALI')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Belum Kembali</button>
+              <button type="button" data-status="SJ ADA" onclick="setFilter('SJ ADA')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">SJ Ada</button>
+              <button type="button" data-status="SUMMARY ADA" onclick="setFilter('SUMMARY ADA')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Summary Ada</button>
+              <button type="button" data-status="OPEN GR" onclick="setFilter('OPEN GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Open GR</button>
+              <button type="button" data-status="OK GR" onclick="setFilter('OK GR')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">OK GR</button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <button type="button" onclick="applyDatePreset('pod', 'TODAY')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700">Hari Ini</button>
+              <button type="button" onclick="applyDatePreset('pod', 'LAST7')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700">7 Hari</button>
+              <button type="button" onclick="applyDatePreset('pod', 'THIS_MONTH')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700">Bulan Ini</button>
+              <button type="button" onclick="applyDatePreset('pod', 'LAST_MONTH')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700">Bulan Lalu</button>
+              <button type="button" onclick="resetAllFilters()" class="px-2.5 py-1 rounded bg-red-50 hover:bg-red-100 font-bold text-red-600 border border-red-200">Reset Filter</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2.5">
             <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dari Tanggal Muat</label>
-              <input type="date" id="podDateStart" onchange="renderTable()"
-                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dari Tgl Muat</label>
+              <input type="date" id="podDateStart" onchange="renderTable()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs" />
             </div>
             <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sampai Tanggal Muat</label>
-              <input type="date" id="podDateEnd" onchange="renderTable()"
-                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sampai Tgl Muat</label>
+              <input type="date" id="podDateEnd" onchange="renderTable()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs" />
             </div>
             <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reminder Aging (Belum OK GR)</label>
-              <select id="podAgingFilter" onchange="renderTable()"
-                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="ALL">Semua Umur Trip</option>
-                <option value="OVER_3">Terlambat &gt; 3 Hari (Follow-Up)</option>
-                <option value="OVER_7">Terlambat &gt; 7 Hari (Kritis)</option>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filter Project</label>
+              <select id="podProjectFilter" onchange="renderTable()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white">
+                <option value="ALL">Semua Project</option>
               </select>
             </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Umur POD (Aging)</label>
+              <select id="podAgingFilter" onchange="renderTable()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
+                <option value="ALL">Semua Umur</option>
+                <option value="OVER_3">Belum OK GR &gt; 3 Hari</option>
+                <option value="OVER_7">Belum OK GR &gt; 7 Hari</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kode Rute / Customer</label>
+              <input list="filterRouteList" id="filterRouteInput" oninput="renderTable()" placeholder="Cari rute..."
+                class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">No. Surat Jalan / DN</label>
+              <input type="text" id="filterSjInput" oninput="renderTable()" placeholder="Cari No. SJ / DN..."
+                class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">SPJ / Nopol / Driver</label>
+              <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari SPJ, Nopol, Driver..."
+                class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs" />
+            </div>
           </div>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Cepat:</span>
-            <button type="button" onclick="applyDatePreset('pod', 'TODAY')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">Hari Ini</button>
-            <button type="button" onclick="applyDatePreset('pod', 'LAST7')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">7 Hari</button>
-            <button type="button" onclick="applyDatePreset('pod', 'THIS_MONTH')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">Bulan Ini</button>
-            <button type="button" onclick="applyDatePreset('pod', 'LAST_MONTH')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">Bulan Lalu</button>
-            <button type="button" onclick="applyDatePreset('pod', 'CLEAR')" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[11px] font-semibold">Semua Tgl</button>
+
+          <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <span id="filterCounter" class="text-xs font-semibold text-slate-500">Memuat data...</span>
+            <button type="button" onclick="exportFilteredToExcel()"
+              class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition">
+              Export Excel (.xlsx)
+            </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-          <div>
-            <label class="block text-[11px] font-bold text-indigo-700 uppercase mb-1">Filter Project</label>
-            <select id="podProjectFilter" onchange="renderTable()"
-              class="w-full px-3 py-1.5 bg-indigo-50/60 border border-indigo-300 rounded-lg text-sm font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="ALL">Semua Project</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Filter Kode Rute / Customer</label>
-            <input list="filterRouteList" id="filterRouteInput" oninput="renderTable()" placeholder="Pilih atau ketik kode rute..."
-              class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Cari Nomor Surat Jalan / DN</label>
-            <input type="text" id="filterSjInput" onkeyup="renderTable()" placeholder="Ketik nomor DN / SJ..."
-              class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Cari No. SPJ / Nopol / Driver</label>
-            <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Ketik SPJ2026..., Nopol, atau Driver..."
-              class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-                <th class="py-3 px-3 w-10 text-center">
-                  <input type="checkbox" id="selectAllPodChk" onchange="toggleSelectAllPod(this)"
-                    class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                </th>
-                <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
-                <th class="py-3 px-4">Project, Rute & Lokasi</th>
-                <th class="py-3 px-4">Armada & Driver</th>
-                <th class="py-3 px-4">No. SJ / DN & Kg</th>
-                <th class="py-3 px-4">Status GR, Aging & Jejak Audit</th>
-                <th class="py-3 px-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="ordersTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 3: REKAP PENAGIHAN (OK GR) -->
-    <section id="viewBilling" class="hidden max-w-7xl mx-auto p-6 space-y-5">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div onclick="setBillingFilter('ALL')" class="cursor-pointer bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition">
-          <p class="text-[11px] font-semibold text-slate-500 uppercase">Total Siap Ditagih (OK GR)</p>
-          <p id="billKpiTotal" class="text-2xl font-bold text-slate-800 mt-1">0</p>
-        </div>
-        <div onclick="setBillingFilter('BELUM DITAGIH')" class="cursor-pointer bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm hover:border-amber-400 transition">
-          <p class="text-[11px] font-bold text-amber-700 uppercase">Belum Ditagih</p>
-          <p id="billKpiBelum" class="text-2xl font-bold text-amber-700 mt-1">0</p>
-        </div>
-        <div onclick="setBillingFilter('SUDAH DITAGIH')" class="cursor-pointer bg-indigo-50 p-4 rounded-xl border border-indigo-200 shadow-sm hover:border-indigo-400 transition">
-          <p class="text-[11px] font-bold text-indigo-700 uppercase">Sudah Ditagih / Lunas</p>
-          <p id="billKpiSudah" class="text-2xl font-bold text-indigo-700 mt-1">0</p>
-        </div>
-        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
-          <p class="text-[11px] font-bold text-emerald-700 uppercase">Nominal Belum Ditagih</p>
-          <p id="billKpiNominal" class="text-xl font-bold text-emerald-800 mt-1">Rp 0</p>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-6">
-          <div>
-            <p class="text-[10px] uppercase tracking-wider text-slate-400">Item Dipilih</p>
-            <p class="text-base font-bold text-amber-400"><span id="selectedBillCount">0</span> DN / SPJ</p>
-          </div>
-          <div>
-            <p class="text-[10px] uppercase tracking-wider text-slate-400">Total Tonase</p>
-            <p class="text-base font-bold text-sky-300"><span id="selectedBillKg">0</span> Kg</p>
-          </div>
-          <div>
-            <p class="text-[10px] uppercase tracking-wider text-slate-400">Total Tagihan Terpilih (DPP)</p>
-            <p id="selectedBillAmount" class="text-lg font-extrabold text-emerald-400">Rp 0</p>
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" onclick="exportSelectedBillingExcel()"
-            class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-sm transition">
-            Export Lampiran Tagihan (.xlsx)
-          </button>
-          <button type="button" onclick="openBatchBillingModal()"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold shadow-sm transition">
-            Proses Penagihan / Update BAST & Invoice
-          </button>
-        </div>
-      </div>
-
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-        <div class="flex flex-wrap justify-between items-center gap-2">
-          <div class="flex flex-wrap gap-1.5 items-center">
-            <button data-bill-status="ALL" onclick="setBillingFilter('ALL')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">Semua OK GR</button>
-            <button data-bill-status="BELUM DITAGIH" onclick="setBillingFilter('BELUM DITAGIH')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Belum Ditagih</button>
-            <button data-bill-status="DRAFT REKAP" onclick="setBillingFilter('DRAFT REKAP')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Draft Rekap</button>
-            <button data-bill-status="SUDAH DITAGIH" onclick="setBillingFilter('SUDAH DITAGIH')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Sudah Ditagih</button>
-            <button data-bill-status="LUNAS" onclick="setBillingFilter('LUNAS')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Lunas</button>
+        <!-- BULK POD ACTION BAR -->
+        <div id="bulkPodActionBar" class="hidden bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs font-semibold">
+            <span id="selectedPodCount" class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-black mr-1">0</span>
+            baris POD dipilih
           </div>
           <div class="flex items-center gap-2">
-            <span id="billingCounter" class="text-xs font-semibold text-slate-500"></span>
-            <button onclick="resetBillingFilters()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">
-              Reset Filter
-            </button>
-            <button onclick="loadAllData()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
-              Refresh
+            <button type="button" onclick="clearPodSelection()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-semibold">Batal Pilih</button>
+            <button type="button" onclick="openBulkPodModal()" class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-lg text-xs shadow">
+              Update Status Massal
             </button>
           </div>
         </div>
 
-        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/80 flex flex-wrap items-end justify-between gap-3">
-          <div class="flex flex-wrap items-end gap-3">
+        <!-- TABLE POD -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 text-[11px] uppercase font-bold">
+                <tr>
+                  <th class="py-3 px-3 text-center w-10">
+                    <input type="checkbox" id="selectAllPodChk" onchange="toggleSelectAllPod(this)" class="w-4 h-4 rounded border-slate-300" />
+                  </th>
+                  <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
+                  <th class="py-3 px-4">Project & Rute</th>
+                  <th class="py-3 px-4">Armada & Driver</th>
+                  <th class="py-3 px-4">Surat Jalan / DN</th>
+                  <th class="py-3 px-4">Status GR</th>
+                  <th class="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: REKAP PENAGIHAN (OK GR) -->
+      <section id="viewBilling" class="hidden space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-[11px] font-bold text-slate-500 uppercase">Total Trip OK GR</div>
+            <div id="billKpiTotal" class="text-xl font-black text-slate-800 mt-1">0</div>
+          </div>
+          <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
+            <div class="text-[11px] font-bold text-amber-700 uppercase">Belum Ditagih</div>
+            <div id="billKpiBelum" class="text-xl font-black text-amber-900 mt-1">0</div>
+          </div>
+          <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
+            <div class="text-[11px] font-bold text-emerald-700 uppercase">Sudah Ditagih / Lunas</div>
+            <div id="billKpiSudah" class="text-xl font-black text-emerald-900 mt-1">0</div>
+          </div>
+          <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 shadow-sm">
+            <div class="text-[11px] font-bold text-indigo-700 uppercase">Estimasi Siap Tagih (DPP)</div>
+            <div id="billKpiNominal" class="text-lg font-black text-indigo-900 mt-1">Rp 0</div>
+          </div>
+        </div>
+
+        <!-- FILTER PENAGIHAN -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button type="button" data-bill-status="ALL" onclick="setBillingFilter('ALL')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">Semua OK GR</button>
+              <button type="button" data-bill-status="BELUM DITAGIH" onclick="setBillingFilter('BELUM DITAGIH')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Belum Ditagih</button>
+              <button type="button" data-bill-status="DRAFT REKAP" onclick="setBillingFilter('DRAFT REKAP')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Draft Rekap</button>
+              <button type="button" data-bill-status="SUDAH DITAGIH" onclick="setBillingFilter('SUDAH DITAGIH')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Sudah Ditagih</button>
+              <button type="button" data-bill-status="LUNAS" onclick="setBillingFilter('LUNAS')" class="bill-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">Lunas</button>
+            </div>
+            <button type="button" onclick="resetBillingFilters()" class="px-2.5 py-1 rounded bg-red-50 hover:bg-red-100 font-bold text-red-600 border border-red-200 text-xs">Reset Filter</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
             <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dari Tanggal Muat</label>
-              <input type="date" id="billDateStart" onchange="renderBillingTable()"
-                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dari Tgl Muat</label>
+              <input type="date" id="billDateStart" onchange="renderBillingTable()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs" />
             </div>
             <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sampai Tanggal Muat</label>
-              <input type="date" id="billDateEnd" onchange="renderBillingTable()"
-                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sampai Tgl Muat</label>
+              <input type="date" id="billDateEnd" onchange="renderBillingTable()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filter Project</label>
+              <select id="billProjectFilter" onchange="renderBillingTable()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white">
+                <option value="ALL">Semua Project</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Rute / Customer</label>
+              <input list="filterRouteList" id="billRouteInput" oninput="renderBillingTable()" placeholder="Cari rute..."
+                class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">No. SJ / SPJ / Nopol</label>
+              <input type="text" id="billSearchInput" oninput="renderBillingTable()" placeholder="Cari SJ, SPJ, Nopol..."
+                class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">No. BAST / Invoice</label>
+              <input type="text" id="billDocSearchInput" oninput="renderBillingTable()" placeholder="Cari BAST / INV..."
+                class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono" />
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Cepat:</span>
-            <button type="button" onclick="applyDatePreset('billing', 'TODAY')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">Hari Ini</button>
-            <button type="button" onclick="applyDatePreset('billing', 'LAST7')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">7 Hari</button>
-            <button type="button" onclick="applyDatePreset('billing', 'THIS_MONTH')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">Bulan Ini</button>
-            <button type="button" onclick="applyDatePreset('billing', 'LAST_MONTH')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 rounded text-[11px] font-semibold">Bulan Lalu</button>
-            <button type="button" onclick="applyDatePreset('billing', 'CLEAR')" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[11px] font-semibold">Semua Tgl</button>
+
+          <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex flex-wrap items-center gap-3">
+              <span id="billingCounter" class="font-semibold text-slate-500">Memuat data...</span>
+              <span class="px-2.5 py-1 rounded bg-blue-50 text-blue-800 border border-blue-200 font-bold">
+                Terpilih: <span id="selectedBillCount">0</span> trip | <span id="selectedBillKg">0</span> Kg | <span id="selectedBillAmount">Rp 0</span>
+              </span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="openBatchBillingModal()"
+                class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm transition">
+                Proses Penagihan Massal
+              </button>
+              <button type="button" onclick="exportSelectedBillingExcel()"
+                class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition">
+                Export Lampiran Excel
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-          <div>
-            <label class="block text-[11px] font-bold text-indigo-700 uppercase mb-1">Filter Project</label>
-            <select id="billProjectFilter" onchange="renderBillingTable()"
-              class="w-full px-3 py-1.5 bg-indigo-50/60 border border-indigo-300 rounded-lg text-sm font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="ALL">Semua Project</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Filter Kode Rute / Customer</label>
-            <input list="filterRouteList" id="billRouteInput" oninput="renderBillingTable()" placeholder="Pilih atau ketik kode rute..."
-              class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Cari No. DN / No. SPJ</label>
-            <input type="text" id="billSearchInput" onkeyup="renderBillingTable()" placeholder="Ketik No. DN, SPJ, atau Nopol..."
-              class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Cari No. BAST / No. Invoice</label>
-            <input type="text" id="billDocSearchInput" onkeyup="renderBillingTable()" placeholder="Ketik nomor BAST atau Invoice..."
-              class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <!-- TABLE PENAGIHAN -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 text-[11px] uppercase font-bold">
+                <tr>
+                  <th class="py-3 px-3 text-center w-10">
+                    <input type="checkbox" id="selectAllBillingChk" onchange="toggleSelectAllBilling(this)" class="w-4 h-4 rounded border-slate-300" />
+                  </th>
+                  <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
+                  <th class="py-3 px-4">Project, Rute & Armada</th>
+                  <th class="py-3 px-4">No. Surat Jalan / DN</th>
+                  <th class="py-3 px-4 text-right">Tarif Jual (DPP)</th>
+                  <th class="py-3 px-4">Status Tagih</th>
+                  <th class="py-3 px-4">Dokumen BAST / INV</th>
+                </tr>
+              </thead>
+              <tbody id="billingTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
+            </table>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-                <th class="py-3 px-3 w-10 text-center">
-                  <input type="checkbox" id="selectAllBillingChk" onchange="toggleSelectAllBilling(this)"
-                    class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                </th>
-                <th class="py-3 px-4">No. SPJ & Tgl Muat</th>
-                <th class="py-3 px-4">Project, Rute & Armada</th>
-                <th class="py-3 px-4">No. SJ / DN & Kg</th>
-                <th class="py-3 px-4 text-right">Tarif Jual</th>
-                <th class="py-3 px-4">Status Tagih</th>
-                <th class="py-3 px-4">No. BAST / Invoice</th>
-              </tr>
-            </thead>
-            <tbody id="billingTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 4: MANAJEMEN MASTER DATA, PROJECT & PENGGUNA (KHUSUS SUPER_ADMIN) -->
-    <section id="viewMaster" class="hidden max-w-7xl mx-auto p-6 space-y-5">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" id="subTabRouteBtn" onclick="switchMasterSubTab('routes')"
-            class="px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition">
-            Master Rute, Tarif & Project (<span id="masterRouteCount">0</span>)
-          </button>
-          <button type="button" id="subTabFleetBtn" onclick="switchMasterSubTab('fleets')"
-            class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-            Master Armada & Driver (<span id="masterFleetCount">0</span>)
-          </button>
-          <button type="button" id="subTabUserBtn" onclick="switchMasterSubTab('users')"
-            class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-            Kelola Pengguna (<span id="masterUserCount">0</span>)
-          </button>
-        </div>
-        <button type="button" onclick="loadAllData()"
-          class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
-          Refresh Master Data
-        </button>
-      </div>
-
-      <!-- SUB-TAB 1: MASTER RUTE, TARIF & PROJECT -->
-      <div id="masterRoutesPane" class="space-y-4">
-        <div id="bulkRouteProjectBar" class="hidden bg-indigo-950 text-white px-5 py-3.5 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-4 border border-indigo-700">
-          <div class="flex items-center gap-3">
-            <span class="px-3 py-1 bg-amber-400 text-slate-950 font-extrabold text-xs rounded-full">
-              <span id="selectedRouteCount">0</span> Rute Dipilih
-            </span>
-            <span class="text-xs text-indigo-200">Pindahkan semua rute terpilih ke satu grup Project:</span>
-          </div>
+      <!-- VIEW 4: MASTER DATA & USER (SUPER_ADMIN) -->
+      <section id="viewMaster" class="hidden space-y-5">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2">
-            <input list="projectDatalist" type="text" id="bulkRouteProjectInput" placeholder="Ketik / pilih nama Project..."
-              class="px-3 py-1.5 bg-white text-slate-900 rounded-lg text-xs font-bold uppercase w-56 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-            <button type="button" onclick="applyBulkRouteProject()" id="applyBulkRouteProjectBtn"
-              class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-sm transition">
-              Simpan Project Massal
+            <button type="button" id="subTabRouteBtn" onclick="switchMasterSubTab('routes')"
+              class="px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition">
+              Master Rute, Tarif & Project (<span id="masterRouteCount">0</span>)
             </button>
-            <button type="button" onclick="clearRouteSelection()"
-              class="px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-indigo-200 rounded-lg text-xs font-semibold transition">
-              Batal
+            <button type="button" id="subTabFleetBtn" onclick="switchMasterSubTab('fleets')"
+              class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+              Master Armada & Driver (<span id="masterFleetCount">0</span>)
+            </button>
+            <button type="button" id="subTabUserBtn" onclick="switchMasterSubTab('users')"
+              class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+              Kelola Akun User (<span id="masterUserCount">0</span>)
             </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
-            <div class="flex justify-between items-center border-b pb-2.5">
+        <!-- SUBTAB 1: MASTER ROUTES & PROJECT -->
+        <div id="masterRoutesPane" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 h-fit">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
               <h3 id="routeFormTitle" class="text-sm font-bold text-slate-800">Tambah Rute & Tarif Baru</h3>
-              <button type="button" id="cancelEditRouteBtn" onclick="resetMasterRouteForm()"
-                class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
+              <button type="button" id="cancelEditRouteBtn" onclick="resetMasterRouteForm()" class="hidden text-xs font-bold text-red-600 hover:underline">Batal</button>
             </div>
             <form id="masterRouteForm" class="space-y-3">
               <input type="hidden" id="mr_row_number" value="0" />
               <div>
-                <label class="block text-xs font-bold text-indigo-700 mb-1">Nama Project *</label>
-                <input list="projectDatalist" type="text" id="mr_project" required placeholder="Contoh: SPLD / TMMIN / ADM / AHM"
-                  class="w-full px-3 py-2 bg-indigo-50/50 border border-indigo-300 rounded-lg text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Project *</label>
+                <input list="projectDatalist" id="mr_project" required placeholder="Contoh: Sunter Assy Plan (SAP)"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Rute / Customer *</label>
-                <input type="text" id="mr_customer" required placeholder="Contoh: MR57503 / SPLD PALEMBANG"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="text" id="mr_customer" required placeholder="Contoh: MR5BO-K1.K2"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold" />
               </div>
-              <div class="grid grid-cols-2 gap-2.5">
+              <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Muat</label>
-                  <input type="text" id="mr_origin" placeholder="Bekasi / CKR"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Asal</label>
+                  <input type="text" id="mr_origin" placeholder="Asal..."
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" />
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan Bongkar</label>
-                  <input type="text" id="mr_destination" placeholder="Karawang / Sunter"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan</label>
+                  <input type="text" id="mr_destination" placeholder="Tujuan..."
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" />
                 </div>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
-                <input list="armadaTypeList" id="mr_vehicle_type" placeholder="Cdd Engkel / Fuso Wing Box..."
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input list="armadaTypeList" id="mr_vehicle_type" placeholder="Jenis armada..."
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" />
               </div>
-              <div class="grid grid-cols-2 gap-2.5">
+              <div class="grid grid-cols-2 gap-2">
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Uang Jalan (Rp)</label>
-                  <input type="number" id="mr_uang_jalan" placeholder="0"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="number" id="mr_uang_jalan" value="0"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono" />
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Tarif Jual (Rp)</label>
-                  <input type="number" id="mr_base_rate" placeholder="0"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="number" id="mr_base_rate" value="0"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono" />
                 </div>
               </div>
               <button type="submit" id="saveMasterRouteBtn"
@@ -628,29 +555,47 @@
           </div>
 
           <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-            <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
-              <div class="flex flex-wrap items-center gap-2">
-                <select id="masterProjectFilter" onchange="renderMasterRoutesTable()"
-                  class="px-2.5 py-1.5 bg-indigo-50 border border-indigo-300 rounded-lg text-xs font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <div class="p-4 border-b border-slate-200 bg-slate-50 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Master_Tarif & Pengelompokan Project</h3>
+                <span id="masterRouteFilteredCounter" class="text-xs font-semibold text-slate-500">Tampil 0 rute</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select id="masterProjectFilter" onchange="renderMasterRoutesTable()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white">
                   <option value="ALL">Semua Project</option>
                 </select>
-                <span id="masterRouteFilteredCounter" class="text-[11px] font-semibold text-slate-500"></span>
+                <input type="text" id="searchMasterRouteInput" oninput="renderMasterRoutesTable()" placeholder="Cari kode rute, project, asal, tujuan..."
+                  class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs" />
               </div>
-              <input type="text" id="searchMasterRouteInput" onkeyup="renderMasterRoutesTable()" placeholder="Cari kode rute, asal, tujuan..."
-                class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+              <!-- BULK ASSIGN PROJECT -->
+              <div id="bulkRouteProjectBar" class="hidden bg-indigo-900 text-white p-3 rounded-lg flex flex-wrap items-center justify-between gap-2">
+                <div class="text-xs font-semibold">
+                  <span id="selectedRouteCount" class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-black mr-1">0</span> rute dipilih
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <input list="projectDatalist" id="bulkRouteProjectInput" placeholder="Pilih / ketik Nama Project..."
+                    class="px-2.5 py-1.5 rounded text-xs text-slate-900 font-bold" />
+                  <button type="button" id="applyBulkRouteProjectBtn" onclick="applyBulkRouteProject()"
+                    class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded text-xs">
+                    Simpan Project Massal
+                  </button>
+                  <button type="button" onclick="clearRouteSelection()" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs">Batal</button>
+                </div>
+              </div>
             </div>
+
             <div class="overflow-x-auto max-h-[540px]">
               <table class="w-full text-left border-collapse text-xs">
-                <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold sticky top-0">
                   <tr>
-                    <th class="py-2.5 px-3 w-8 text-center">
-                      <input type="checkbox" id="selectAllMasterRoutesChk" onchange="toggleSelectAllMasterRoutes(this)"
-                        class="w-3.5 h-3.5 rounded border-slate-300 text-blue-600" />
+                    <th class="py-2.5 px-3 text-center w-8">
+                      <input type="checkbox" id="selectAllMasterRoutesChk" onchange="toggleSelectAllMasterRoutes(this)" class="w-3.5 h-3.5 rounded" />
                     </th>
                     <th class="py-2.5 px-3">Project</th>
-                    <th class="py-2.5 px-3">Customer / Rute</th>
+                    <th class="py-2.5 px-3">Kode Rute & Armada</th>
                     <th class="py-2.5 px-3">Asal &rarr; Tujuan</th>
-                    <th class="py-2.5 px-3 text-right">UJ / Tarif Jual</th>
+                    <th class="py-2.5 px-3 text-right">UJ & Tarif Jual</th>
                     <th class="py-2.5 px-3 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -659,132 +604,130 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- SUB-TAB 2: MASTER ARMADA & DRIVER -->
-      <div id="masterFleetsPane" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
-          <div class="flex justify-between items-center border-b pb-2.5">
-            <h3 id="fleetFormTitle" class="text-sm font-bold text-slate-800">Tambah Armada & Driver</h3>
-            <button type="button" id="cancelEditFleetBtn" onclick="resetMasterFleetForm()"
-              class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
-          </div>
-          <form id="masterFleetForm" class="space-y-3">
-            <input type="hidden" id="mf_row_number" value="0" />
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Polisi (Nopol) *</label>
-              <input type="text" id="mf_nopol" required placeholder="Contoh: B 9123 KXU"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <!-- SUBTAB 2: MASTER ARMADA -->
+        <div id="masterFleetsPane" class="hidden grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 h-fit">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+              <h3 id="fleetFormTitle" class="text-sm font-bold text-slate-800">Tambah Armada & Driver</h3>
+              <button type="button" id="cancelEditFleetBtn" onclick="resetMasterFleetForm()" class="hidden text-xs font-bold text-red-600 hover:underline">Batal</button>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
-              <input list="armadaTypeList" id="mf_vehicle_type" placeholder="Cdd Engkel / Fuso Wing Box..."
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver Tetap</label>
-              <input type="text" id="mf_driver_name" placeholder="Nama lengkap driver..."
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <button type="submit" id="saveMasterFleetBtn"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
-              Simpan Armada & Driver
-            </button>
-          </form>
-        </div>
-
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Master_Armada</h3>
-            <input type="text" id="searchMasterFleetInput" onkeyup="renderMasterFleetsTable()" placeholder="Cari nopol, jenis armada, nama driver..."
-              class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs w-64 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div class="overflow-x-auto max-h-[540px]">
-            <table class="w-full text-left border-collapse text-xs">
-              <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
-                <tr>
-                  <th class="py-2.5 px-4">Nomor Polisi</th>
-                  <th class="py-2.5 px-4">Jenis Armada</th>
-                  <th class="py-2.5 px-4">Nama Driver</th>
-                  <th class="py-2.5 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="masterFleetsTableBody" class="divide-y divide-slate-200"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- SUB-TAB 3: KELOLA PENGGUNA (Master_Users) -->
-      <div id="masterUsersPane" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
-          <div class="flex justify-between items-center border-b pb-2.5">
-            <h3 id="userFormTitle" class="text-sm font-bold text-slate-800">Tambah / Edit Akun Pengguna</h3>
-            <button type="button" id="cancelEditUserBtn" onclick="resetUserForm()"
-              class="hidden text-xs font-semibold text-red-600 hover:underline">Batal Edit</button>
-          </div>
-          <form id="masterUserForm" class="space-y-3">
-            <input type="hidden" id="mu_row_number" value="0" />
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Username *</label>
-              <input type="text" id="mu_username" required placeholder="Contoh: dede"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold lowercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Password *</label>
-              <input type="text" id="mu_password" required placeholder="Password / PIN login"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Tampil (Jejak Audit) *</label>
-              <input type="text" id="mu_display_name" required placeholder="Contoh: Dede"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div class="grid grid-cols-2 gap-2.5">
+            <form id="masterFleetForm" class="space-y-3">
+              <input type="hidden" id="mf_row_number" value="0" />
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Hak Akses (Role)</label>
-                <select id="mu_role" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white">
-                  <option value="ADMIN_POD">ADMIN_POD</option>
-                  <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                </select>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Nopol Kendaraan *</label>
+                <input type="text" id="mf_nopol" required placeholder="B 9123 XYZ"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono uppercase font-bold" />
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Status Akun</label>
-                <select id="mu_status" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white">
-                  <option value="AKTIF">AKTIF</option>
-                  <option value="NONAKTIF">NONAKTIF</option>
-                </select>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Armada</label>
+                <input list="armadaTypeList" id="mf_vehicle_type" placeholder="CDD Box / Blind Van..."
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" />
               </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Driver Default</label>
+                <input type="text" id="mf_driver_name" placeholder="Nama driver..."
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" />
+              </div>
+              <button type="submit" id="saveMasterFleetBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
+                Simpan Armada & Driver
+              </button>
+            </form>
+          </div>
+
+          <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Master_Armada</h3>
+              <input type="text" id="searchMasterFleetInput" oninput="renderMasterFleetsTable()" placeholder="Cari Nopol, Armada, Driver..."
+                class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs" />
             </div>
-            <button type="submit" id="saveMasterUserBtn"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
-              Simpan Akun Pengguna
-            </button>
-          </form>
+            <div class="overflow-x-auto max-h-[500px]">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold sticky top-0">
+                  <tr>
+                    <th class="py-2.5 px-4">Nopol</th>
+                    <th class="py-2.5 px-4">Jenis Armada</th>
+                    <th class="py-2.5 px-4">Driver Default</th>
+                    <th class="py-2.5 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="masterFleetsTableBody" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div class="p-4 border-b border-slate-200 bg-slate-50">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Akun Pengguna TMS (Master_Users)</h3>
+        <!-- SUBTAB 3: MASTER USERS -->
+        <div id="masterUsersPane" class="hidden grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 h-fit">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+              <h3 id="userFormTitle" class="text-sm font-bold text-slate-800">Tambah / Edit Akun Pengguna</h3>
+              <button type="button" id="cancelEditUserBtn" onclick="resetUserForm()" class="hidden text-xs font-bold text-red-600 hover:underline">Batal</button>
+            </div>
+            <form id="masterUserForm" class="space-y-3">
+              <input type="hidden" id="mu_row_number" value="0" />
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Username *</label>
+                <input type="text" id="mu_username" required placeholder="username_login"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Password *</label>
+                <input type="text" id="mu_password" required placeholder="password"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Tampil *</label>
+                <input type="text" id="mu_display_name" required placeholder="Nama Lengkap"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" />
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Role Akses</label>
+                  <select id="mu_role" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white">
+                    <option value="ADMIN_POD">ADMIN_POD</option>
+                    <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Status Akun</label>
+                  <select id="mu_status" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white">
+                    <option value="AKTIF">AKTIF</option>
+                    <option value="NONAKTIF">NONAKTIF</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" id="saveMasterUserBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-sm transition">
+                Simpan Akun Pengguna
+              </button>
+            </form>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-              <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
-                <tr>
-                  <th class="py-2.5 px-4">Username</th>
-                  <th class="py-2.5 px-4">Nama Tampil</th>
-                  <th class="py-2.5 px-4">Password</th>
-                  <th class="py-2.5 px-4">Role</th>
-                  <th class="py-2.5 px-4">Status</th>
-                  <th class="py-2.5 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="masterUsersTableBody" class="divide-y divide-slate-200"></tbody>
-            </table>
+
+          <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-200 bg-slate-50">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Daftar Akun Pengguna TMS (Master_Users)</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead class="bg-slate-100 border-b border-slate-200 text-slate-600 uppercase font-bold">
+                  <tr>
+                    <th class="py-2.5 px-4">Username</th>
+                    <th class="py-2.5 px-4">Nama Tampil</th>
+                    <th class="py-2.5 px-4">Password</th>
+                    <th class="py-2.5 px-4">Role</th>
+                    <th class="py-2.5 px-4">Status</th>
+                    <th class="py-2.5 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="masterUsersTableBody" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
   </div>
 
   <!-- MODAL 1: EDIT DATA ORDER -->
@@ -909,7 +852,6 @@
             <option value="BELUM KEMBALI">BELUM KEMBALI</option>
             <option value="SJ ADA">SJ ADA</option>
             <option value="SUMMARY ADA">SUMMARY ADA</option>
-            <option value="SJ LENGKAP">SJ LENGKAP</option>
             <option value="OPEN GR">OPEN GR (Tertahan / Ada Kendala)</option>
             <option value="OK GR">OK GR (Lengkap / Masuk Rekap Penagihan)</option>
           </select>
@@ -955,7 +897,6 @@
             class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="SJ ADA">SJ ADA</option>
             <option value="SUMMARY ADA">SUMMARY ADA</option>
-            <option value="SJ LENGKAP">SJ LENGKAP</option>
             <option value="OK GR" selected>OK GR (Lengkap / Siap Penagihan)</option>
             <option value="OPEN GR">OPEN GR (Tertahan / Ada Kendala)</option>
             <option value="BELUM KEMBALI">BELUM KEMBALI</option>
@@ -1693,7 +1634,7 @@
           document.getElementById("kpiTotal").textContent = (json.summary?.total || 0).toLocaleString("id-ID");
           document.getElementById("kpiBelum").textContent = (json.summary?.belum_kembali || 0).toLocaleString("id-ID");
           document.getElementById("kpiSjAda").textContent = (json.summary?.sj_ada || 0).toLocaleString("id-ID");
-          document.getElementById("kpiSjLengkap").textContent = (json.summary?.sj_lengkap || 0).toLocaleString("id-ID");
+          document.getElementById("kpiSummaryAda").textContent = (json.summary?.summary_ada || 0).toLocaleString("id-ID");
           document.getElementById("kpiOpen").textContent = (json.summary?.open_gr || 0).toLocaleString("id-ID");
           document.getElementById("kpiOk").textContent = (json.summary?.ok_gr || 0).toLocaleString("id-ID");
 
@@ -1737,7 +1678,7 @@
       const projectCountsBilling = {};
 
       masterRoutes.forEach(r => {
-        const p = (r.project || "UMUM").toUpperCase();
+        const p = r.project || "UMUM";
         projectCountsMaster[p] = (projectCountsMaster[p] || 0) + 1;
 
         if (!seenCust.has(r.customer)) {
@@ -1754,7 +1695,7 @@
       });
 
       allOrders.forEach(o => {
-        const p = (o.project || "UMUM").toUpperCase();
+        const p = o.project || "UMUM";
         projectCountsOrders[p] = (projectCountsOrders[p] || 0) + 1;
         if (o.customer && !seenCust.has(o.customer)) {
           seenCust.add(o.customer);
@@ -1765,7 +1706,7 @@
       });
 
       allBillings.forEach(b => {
-        const p = (b.project || "UMUM").toUpperCase();
+        const p = b.project || "UMUM";
         projectCountsBilling[p] = (projectCountsBilling[p] || 0) + 1;
       });
 
@@ -1968,7 +1909,6 @@
       if (status === "OK GR") return "bg-emerald-100 text-emerald-800 border-emerald-200";
       if (status === "SJ ADA") return "bg-sky-100 text-sky-800 border-sky-200";
       if (status === "SUMMARY ADA") return "bg-purple-100 text-purple-800 border-purple-200";
-      if (status === "SJ LENGKAP") return "bg-indigo-100 text-indigo-800 border-indigo-200";
       return "bg-amber-100 text-amber-800 border-amber-200";
     }
 
@@ -2084,7 +2024,7 @@
       currentFilteredOrders = allOrders.filter(item => {
         const matchStatus = currentFilter === "ALL" || item.status_gr === currentFilter;
         const matchDate = matchDateRange(item, startIso, endIso);
-        const matchProject = projectSelected === "ALL" || (item.project || "UMUM").toUpperCase() === projectSelected;
+        const matchProject = projectSelected === "ALL" || (item.project || "UMUM") === projectSelected;
 
         const agingDays = computeAgingDays(item);
         let matchAging = true;
@@ -2278,7 +2218,7 @@
       currentFilteredBillings = allBillings.filter(item => {
         const matchStatus = currentBillingFilter === "ALL" || item.status_tagih === currentBillingFilter;
         const matchDate = matchDateRange(item, startIso, endIso);
-        const matchProject = projectSelected === "ALL" || (item.project || "UMUM").toUpperCase() === projectSelected;
+        const matchProject = projectSelected === "ALL" || (item.project || "UMUM") === projectSelected;
         const matchRoute = !routeQuery || (item.customer || "").toLowerCase().includes(routeQuery);
         const matchSearch = !searchQuery ||
           (item.no_surat_jalan || "").toLowerCase().includes(searchQuery) ||
@@ -2530,7 +2470,7 @@
     }
 
     async function applyBulkRouteProject() {
-      const projVal = document.getElementById("bulkRouteProjectInput").value.trim().toUpperCase();
+      const projVal = document.getElementById("bulkRouteProjectInput").value.trim();
       if (!projVal) {
         alert("Ketik atau pilih Nama Project tujuan terlebih dahulu.");
         return;
@@ -2577,7 +2517,7 @@
       const q = (document.getElementById("searchMasterRouteInput")?.value || "").trim().toLowerCase();
 
       currentFilteredMasterRoutes = masterRoutes.filter(r => {
-        const matchProj = projFilter === "ALL" || (r.project || "UMUM").toUpperCase() === projFilter;
+        const matchProj = projFilter === "ALL" || (r.project || "UMUM") === projFilter;
         const matchQ = !q ||
           (r.customer || "").toLowerCase().includes(q) ||
           (r.project || "").toLowerCase().includes(q) ||
@@ -2664,7 +2604,7 @@
         action: "SAVE_MASTER_ROUTE",
         data: {
           row_number: Number(document.getElementById("mr_row_number").value || 0),
-          project: document.getElementById("mr_project").value.trim().toUpperCase(),
+          project: document.getElementById("mr_project").value.trim(),
           customer: document.getElementById("mr_customer").value.trim(),
           origin: document.getElementById("mr_origin").value.trim(),
           destination: document.getElementById("mr_destination").value.trim(),
