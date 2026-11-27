@@ -16,7 +16,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
 
-  <!-- LOGIN SCREEN (HANYA USERNAME & PASSWORD) -->
+  <!-- LOGIN SCREEN -->
   <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-lg max-w-md w-full p-8 border border-slate-200">
       <div class="text-center mb-6">
@@ -166,7 +166,6 @@
 
       <!-- ==================== TAB 2: REKAP PENAGIHAN & INVOICE ==================== -->
       <section id="section-billing" class="hidden">
-        <!-- BILLING KPI CARDS -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
           <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
             <div class="text-[11px] font-semibold text-slate-500 uppercase">Siap Ditagih (OK GR)</div>
@@ -190,13 +189,11 @@
           </div>
         </div>
 
-        <!-- SUB-TABS PENAGIHAN -->
         <div class="flex flex-wrap gap-2 mb-4">
           <button onclick="switchBillingSubTab('items')" id="bsub-btn-items" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-indigo-600 text-white shadow-sm">Daftar Trip OK GR (Pilih Tagihan)</button>
           <button onclick="switchBillingSubTab('invoices')" id="bsub-btn-invoices" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Rekap Per-Invoice & Faktur Pajak</button>
         </div>
 
-        <!-- SUB-TAB A: DAFTAR ITEM TRIP PENAGIHAN -->
         <div id="billing-sub-items">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-2.5">
@@ -242,7 +239,6 @@
           </div>
         </div>
 
-        <!-- SUB-TAB B: REKAP PER-INVOICE & FAKTUR PAJAK -->
         <div id="billing-sub-invoices" class="hidden">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-2.5">
@@ -378,7 +374,7 @@
       <div class="flex items-center justify-between mb-3">
         <div>
           <h3 class="text-lg font-bold text-slate-900">Input Order Multi-SPJ & Scan PDF Tripnote / DN</h3>
-          <p class="text-xs text-slate-500">Mendukung pembuatan banyak SPJ sekaligus (1 dokumen = 1 SPJ berurutan) dan otomatis tersimpan ke Google Sheet & Web TMS.</p>
+          <p class="text-xs text-slate-500">Mendukung banyak halaman sekaligus (halaman lanjutan dengan No. Tripnote sama otomatis digabung menjadi 1 SPJ, duplikat otomatis ditandai).</p>
         </div>
         <button onclick="closeModal('modal-create-order')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -387,7 +383,7 @@
       <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <label class="block text-xs font-bold text-indigo-900 mb-1">📄 Upload PDF Regular Trip Note / Delivery Note (Multi-File)</label>
+            <label class="block text-xs font-bold text-indigo-900 mb-1">📄 Upload PDF Regular Trip Note / Delivery Note (Multi-File & Multi-Halaman)</label>
             <input type="file" id="pdf-tripnote-upload" accept="application/pdf" multiple onchange="handlePdfTripnoteUpload(event)" class="text-xs text-slate-700 file:mr-3 file:py-1.5 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer" />
           </div>
           <div class="text-right text-[11px] text-indigo-800">
@@ -396,7 +392,17 @@
           </div>
         </div>
         <div id="pdf-parse-status" class="text-xs text-indigo-700 mt-2 font-medium">
-          Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, atau klik "+ Tambah Baris SPJ" untuk input manual.
+          Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, lalu review hasilnya pada tabel di bawah sebelum disimpan.
+        </div>
+
+        <!-- PANEL REVIEW & CATATAN DUPLIKAT HASIL SCAN PDF -->
+        <div id="pdf-review-panel" class="hidden mt-3 bg-white border border-indigo-200 rounded-lg p-3.5 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
+            <div class="text-xs font-bold text-slate-900">📋 Hasil Scan & Review Dokumen PDF</div>
+            <div id="pdf-review-badges" class="flex flex-wrap gap-1.5 text-[11px]"></div>
+          </div>
+          <div id="pdf-duplicate-notes" class="hidden mt-2.5 bg-amber-50 border border-amber-300 rounded-lg p-2.5 text-xs text-amber-900"></div>
+          <div id="pdf-review-summary-text" class="mt-2 text-[11px] text-slate-600"></div>
         </div>
       </div>
 
@@ -424,10 +430,10 @@
         </div>
       </div>
 
-      <!-- TABEL PREVIEW & EDIT MULTI-SPJ (KOLOM LEBAR & TIDAK TERPOTONG) -->
+      <!-- TABEL REVIEW & EDIT MULTI-SPJ (KOLOM LEBAR & TIDAK TERPOTONG) -->
       <form id="form-create-order">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-bold text-slate-800">Daftar Antrean SPJ (<span id="multi-spj-count">0</span> SPJ siap disimpan)</span>
+          <span class="text-xs font-bold text-slate-800">Tabel Review & Antrean SPJ (<span id="multi-spj-count">0</span> SPJ siap disimpan)</span>
           <div class="flex gap-2">
             <button type="button" onclick="clearAllSpjRows()" class="px-2.5 py-1 rounded border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100">Bersihkan Baris</button>
             <button type="button" onclick="addMultiSpjRow()" class="px-3 py-1 rounded bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700">+ Tambah Baris SPJ</button>
@@ -435,12 +441,12 @@
         </div>
 
         <div class="border border-slate-200 rounded-xl overflow-x-auto mb-4">
-          <table class="min-w-[1380px] w-full text-left border-collapse text-xs">
+          <table class="min-w-[1440px] w-full text-left border-collapse text-xs">
             <thead class="bg-slate-100 border-b border-slate-200 text-[11px] uppercase text-slate-600">
               <tr>
                 <th class="py-2.5 px-2.5 min-w-[145px]">No. SPJ *</th>
                 <th class="py-2.5 px-2.5 min-w-[140px]">Tgl Muat *</th>
-                <th class="py-2.5 px-2.5 min-w-[195px]">No. DN / Surat Jalan *</th>
+                <th class="py-2.5 px-2.5 min-w-[215px]">No. DN / Surat Jalan *</th>
                 <th class="py-2.5 px-2.5 min-w-[230px]">Nama Rute / Customer *</th>
                 <th class="py-2.5 px-2.5 min-w-[175px]">Project</th>
                 <th class="py-2.5 px-2.5 min-w-[125px]">Nopol</th>
@@ -455,7 +461,7 @@
         </div>
 
         <div class="flex items-center justify-between pt-3 border-t">
-          <div class="text-[11px] text-slate-500">Setelah disimpan, data langsung masuk ke Google Sheet & tabel Web TMS secara otomatis.</div>
+          <div class="text-[11px] text-slate-500">Periksa seluruh hasil scan di atas. Klik <b>Simpan Semua SPJ</b> untuk memasukkan data ke Google Sheet & Web TMS.</div>
           <div class="flex gap-2">
             <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
             <button type="submit" id="btn-save-order" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm">Simpan Semua SPJ</button>
@@ -590,7 +596,7 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL: PROSES / EDIT TAGIHAN (NO INVOICE & FAKTUR PAJAK) ==================== -->
+  <!-- ==================== MODAL: PROSES / EDIT TAGIHAN ==================== -->
   <div id="modal-billing-batch" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl">
       <h3 class="text-lg font-bold text-slate-900 mb-1">Update Status & Rekap Penagihan</h3>
@@ -791,7 +797,6 @@
         topBtn.textContent = "↻ Memuat Ulang...";
       }
 
-      // Reset semua input filter & pilihan checkbox
       const filterIds = [
         "filter-order-search",
         "filter-order-project",
@@ -883,7 +888,6 @@
           el.classList.toggle("hidden", currentUser.role !== "SUPER_ADMIN");
         });
 
-        // KPI Orders
         document.getElementById("kpi-total").textContent = json.summary.total;
         document.getElementById("kpi-belum").textContent = json.summary.belum_kembali;
         document.getElementById("kpi-sj").textContent = json.summary.sj_ada;
@@ -892,7 +896,6 @@
         document.getElementById("kpi-ok").textContent = json.summary.ok_gr;
         document.getElementById("kpi-cancel").textContent = json.summary.cancel;
 
-        // KPI Billing
         document.getElementById("bkpi-total").textContent = json.billing_summary.total;
         document.getElementById("bkpi-belum").textContent = json.billing_summary.belum_ditagih;
         document.getElementById("bkpi-draft").textContent = json.billing_summary.draft_rekap;
@@ -945,7 +948,6 @@
       document.getElementById("datalist-nopol").innerHTML = appState.fleets.map(f => `<option value="${f.nopol}">${f.vehicle_type} - ${f.driver_name}</option>`).join("");
     }
 
-    // --- TABS ---
     function switchMainTab(tab) {
       ["orders", "billing", "routes", "fleets", "users"].forEach(t => {
         const sec = document.getElementById(`section-${t}`);
@@ -1128,24 +1130,48 @@
       return "";
     }
 
-    // --- PDF PARSER MULTI-FILE (REGULAR TRIP NOTE & DELIVERY NOTE) ---
+    // --- PDF PARSER MULTI-FILE & MULTI-HALAMAN + DEDUPLIKASI & REVIEW ---
     async function handlePdfTripnoteUpload(event) {
       const files = Array.from(event.target.files || []);
       if (!files.length) return;
 
       const statusEl = document.getElementById("pdf-parse-status");
+      const reviewPanel = document.getElementById("pdf-review-panel");
+      const reviewBadges = document.getElementById("pdf-review-badges");
+      const dupNotesEl = document.getElementById("pdf-duplicate-notes");
+      const reviewSummaryEl = document.getElementById("pdf-review-summary-text");
+
       statusEl.textContent = `Membaca ${files.length} file PDF (Regular Trip Note / Delivery Note)...`;
 
-      const parsedTrips = [];
+      // Map dokumen yang sudah tersimpan di Google Sheet (kecuali CANCEL)
+      const existingSheetMap = new Map();
+      (appState.orders || []).forEach(o => {
+        if ((o.status_gr || "").toUpperCase() === "CANCEL") return;
+        const dnKey = (o.no_surat_jalan || "").trim().toUpperCase();
+        if (dnKey && !existingSheetMap.has(dnKey)) {
+          existingSheetMap.set(dnKey, o);
+        }
+      });
+
+      // Set dokumen yang sudah ada di antrean layar saat ini
+      const currentQueueSet = new Set(
+        Array.from(document.querySelectorAll(".row-dn"))
+          .map(i => i.value.trim().toUpperCase())
+          .filter(Boolean)
+      );
+
+      // Map penggabungan halaman dalam batch PDF yang sama (1 No. Tripnote/DN = 1 SPJ)
+      const batchMergedMap = new Map();
+      const duplicateNotes = [];
+      let totalPagesScanned = 0;
+      let mergedContinuationPages = 0;
       const todayIso = new Date().toISOString().split("T")[0];
 
       for (const file of files) {
         try {
           const buf = await file.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-
-          let fullText = "";
-          const pageLinesList = [];
+          totalPagesScanned += pdf.numPages;
 
           for (let p = 1; p <= pdf.numPages; p++) {
             const page = await pdf.getPage(p);
@@ -1156,46 +1182,43 @@
               if (!linesMap[y]) linesMap[y] = [];
               linesMap[y].push({ x: it.transform[4], str: it.str });
             });
+
             const sortedYs = Object.keys(linesMap).map(Number).sort((a, b) => b - a);
             const sortedLines = sortedYs.map(y =>
               linesMap[y].sort((a, b) => a.x - b.x).map(i => i.str).join(" ").trim()
             );
-            pageLinesList.push(sortedLines);
-            fullText += "\n" + sortedLines.join("\n");
-          }
+            const pageText = sortedLines.join("\n");
+            if (!pageText.trim()) continue;
 
-          const isDeliveryNote = /\bDelivery\s*Note\b/i.test(fullText) && /\bMaterial\s*No\b/i.test(fullText);
+            const isDeliveryNote = /\bDelivery\s*Note\b/i.test(pageText) && /\bMaterial\s*No\b/i.test(pageText);
+            const extractedItems = [];
 
-          if (isDeliveryNote) {
-            // ================= FORMAT 2: DELIVERY NOTE (ADM) =================
-            // 1. DN No ("DN No : SO292611000157") -> No. Surat Jalan
-            let dnNo = "";
-            const dnMatch = fullText.match(/\bDN\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
-            if (dnMatch && dnMatch[1]) {
-              dnNo = dnMatch[1].trim().toUpperCase();
-            } else {
-              const topDn = fullText.slice(0, 700).match(/\b(SO\d{8,20}|DN\d{8,20})\b/i);
-              if (topDn) dnNo = topDn[1].toUpperCase();
-            }
+            if (isDeliveryNote) {
+              // ================= FORMAT 2: DELIVERY NOTE (ADM) =================
+              let dnNo = "";
+              const dnMatch = pageText.match(/\bDN\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
+              if (dnMatch && dnMatch[1]) {
+                dnNo = dnMatch[1].trim().toUpperCase();
+              } else {
+                const topDn = pageText.slice(0, 700).match(/\b(SO\d{8,20}|DN\d{8,20})\b/i);
+                if (topDn) dnNo = topDn[1].toUpperCase();
+              }
 
-            // 2. Delivery Date (tanggal di bawah blok DELIVERY) -> Tanggal Muat
-            let tglMuatIso = "";
-            const delivBlockMatch = fullText.match(/\bDELIVERY\b[\s\S]{0,160}?\bDate\s*[:\-]?\s*([0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d)/i);
-            if (delivBlockMatch && delivBlockMatch[1]) {
-              tglMuatIso = parseDateToIso(delivBlockMatch[1]);
-            }
-            if (!tglMuatIso) {
-              const allDates = fullText.match(/\b[0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d\b/g) || [];
-              if (allDates.length >= 2) tglMuatIso = parseDateToIso(allDates[1]);
-              else if (allDates.length === 1) tglMuatIso = parseDateToIso(allDates[0]);
-            }
-            if (!tglMuatIso) tglMuatIso = todayIso;
+              let tglMuatIso = "";
+              const delivBlockMatch = pageText.match(/\bDELIVERY\b[\s\S]{0,160}?\bDate\s*[:\-]?\s*([0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d)/i);
+              if (delivBlockMatch && delivBlockMatch[1]) {
+                tglMuatIso = parseDateToIso(delivBlockMatch[1]);
+              }
+              if (!tglMuatIso) {
+                const allDates = pageText.match(/\b[0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d\b/g) || [];
+                if (allDates.length >= 2) tglMuatIso = parseDateToIso(allDates[1]);
+                else if (allDates.length === 1) tglMuatIso = parseDateToIso(allDates[0]);
+              }
+              if (!tglMuatIso) tglMuatIso = todayIso;
 
-            // 3. Material No ("M2KBKCP") -> Rute / Customer
-            const materialsFound = [];
-            pageLinesList.forEach(lines => {
+              const materialsFound = [];
               let inTable = false;
-              lines.forEach(line => {
+              sortedLines.forEach(line => {
                 if (/\bMaterial\s*No\b/i.test(line)) {
                   inTable = true;
                   return;
@@ -1206,91 +1229,128 @@
                   materialsFound.push(rowMatch[1].trim().toUpperCase());
                 }
               });
-            });
 
-            if (materialsFound.length === 0) {
-              const fallbackMat = fullText.match(/Material\s*Name[\s\S]{0,120}?\b1\s+([A-Z0-9\-\\\/]{4,20})\b/i);
-              if (fallbackMat && fallbackMat[1]) {
-                materialsFound.push(fallbackMat[1].trim().toUpperCase());
-              }
-            }
-
-            const routeList = materialsFound.length > 0 ? materialsFound : [""];
-
-            routeList.forEach(matRoute => {
-              let matchedMaster = null;
-              if (matRoute) {
-                matchedMaster = appState.routes.find(r => (r.customer || "").trim().toUpperCase() === matRoute)
-                  || appState.routes.find(r => (r.customer || "").trim().toUpperCase().includes(matRoute))
-                  || matchRouteFromText(matRoute);
+              if (materialsFound.length === 0) {
+                const fallbackMat = pageText.match(/Material\s*Name[\s\S]{0,120}?\b1\s+([A-Z0-9\-\\\/]{4,20})\b/i);
+                if (fallbackMat && fallbackMat[1]) {
+                  materialsFound.push(fallbackMat[1].trim().toUpperCase());
+                }
               }
 
-              parsedTrips.push({
-                no_surat_jalan: dnNo,
-                tgl_muat: tglMuatIso,
-                customer: matRoute || (matchedMaster ? matchedMaster.customer : ""),
-                project: matchedMaster ? matchedMaster.project : "",
-                asal: matchedMaster && matchedMaster.origin !== "NONE" ? matchedMaster.origin : "",
-                tujuan: matchedMaster && matchedMaster.destination !== "NONE TUJUAN" ? matchedMaster.destination : "",
-                jenis_armada: matchedMaster && matchedMaster.vehicle_type !== "NONE ARMADA" ? matchedMaster.vehicle_type : "",
-                kilogram: ""
+              const routeList = materialsFound.length > 0 ? materialsFound : [""];
+              routeList.forEach(matRoute => {
+                let matchedMaster = null;
+                if (matRoute) {
+                  matchedMaster = appState.routes.find(r => (r.customer || "").trim().toUpperCase() === matRoute)
+                    || appState.routes.find(r => (r.customer || "").trim().toUpperCase().includes(matRoute))
+                    || matchRouteFromText(matRoute);
+                }
+
+                if (dnNo || matRoute) {
+                  extractedItems.push({
+                    no_surat_jalan: dnNo,
+                    tgl_muat: tglMuatIso,
+                    customer: matRoute || (matchedMaster ? matchedMaster.customer : ""),
+                    project: matchedMaster ? matchedMaster.project : "",
+                    asal: matchedMaster && matchedMaster.origin !== "NONE" ? matchedMaster.origin : "",
+                    tujuan: matchedMaster && matchedMaster.destination !== "NONE TUJUAN" ? matchedMaster.destination : "",
+                    jenis_armada: matchedMaster && matchedMaster.vehicle_type !== "NONE ARMADA" ? matchedMaster.vehicle_type : "",
+                    kilogram: "",
+                    source_info: `${file.name} (Hal. ${p})`
+                  });
+                }
               });
-            });
 
-          } else {
-            // ================= FORMAT 1: REGULAR TRIP NOTE =================
-            // 1. Trip Note No ("Trip Note No : DN56261100009245") -> No. Surat Jalan
-            let tripNoteNo = "";
-            const tnMatch = fullText.match(/Trip\s*Note\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
-            if (tnMatch && tnMatch[1]) {
-              tripNoteNo = tnMatch[1].trim().toUpperCase();
             } else {
-              const topSection = fullText.slice(0, 700);
-              const topDnMatch = topSection.match(/\b(DN\d{10,20})\b/i);
-              if (topDnMatch) tripNoteNo = topDnMatch[1].toUpperCase();
+              // ================= FORMAT 1: REGULAR TRIP NOTE =================
+              let tripNoteNo = "";
+              const tnMatch = pageText.match(/Trip\s*Note\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
+              if (tnMatch && tnMatch[1]) {
+                tripNoteNo = tnMatch[1].trim().toUpperCase();
+              } else {
+                const topDnMatch = pageText.slice(0, 700).match(/\b(DN\d{10,20})\b/i);
+                if (topDnMatch) tripNoteNo = topDnMatch[1].toUpperCase();
+              }
+
+              let tglMuatIso = "";
+              const ddMatch = pageText.match(/Delivery\s*Date\s*[:\-]?\s*([0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d)/i);
+              if (ddMatch && ddMatch[1]) {
+                tglMuatIso = parseDateToIso(ddMatch[1]);
+              }
+              if (!tglMuatIso) {
+                tglMuatIso = parseDateToIso(pageText.slice(0, 800)) || todayIso;
+              }
+
+              let routeCode = "";
+              const routeMatch = pageText.match(/\bRoute\s*[:\-]?\s*([^\s\r\n]+)/i);
+              if (routeMatch && routeMatch[1]) {
+                routeCode = routeMatch[1].trim().toUpperCase();
+              }
+
+              let matchedMaster = null;
+              if (routeCode) {
+                matchedMaster = appState.routes.find(r => (r.customer || "").trim().toUpperCase() === routeCode)
+                  || appState.routes.find(r => (r.customer || "").trim().toUpperCase().includes(routeCode))
+                  || matchRouteFromText(routeCode);
+              }
+              if (!matchedMaster) {
+                matchedMaster = matchRouteFromText(pageText.slice(0, 900));
+              }
+
+              const finalCustomer = routeCode || (matchedMaster ? matchedMaster.customer : "");
+
+              if (tripNoteNo || finalCustomer) {
+                extractedItems.push({
+                  no_surat_jalan: tripNoteNo,
+                  tgl_muat: tglMuatIso,
+                  customer: finalCustomer,
+                  project: matchedMaster ? matchedMaster.project : "",
+                  asal: matchedMaster && matchedMaster.origin !== "NONE" ? matchedMaster.origin : "",
+                  tujuan: matchedMaster && matchedMaster.destination !== "NONE TUJUAN" ? matchedMaster.destination : "",
+                  jenis_armada: matchedMaster && matchedMaster.vehicle_type !== "NONE ARMADA" ? matchedMaster.vehicle_type : "",
+                  kilogram: "",
+                  source_info: `${file.name} (Hal. ${p})`
+                });
+              }
             }
 
-            // 2. Delivery Date ("Delivery Date : 01-Dec-2026 1:30:00") -> Tanggal Muat
-            let tglMuatIso = "";
-            const ddMatch = fullText.match(/Delivery\s*Date\s*[:\-]?\s*([0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d)/i);
-            if (ddMatch && ddMatch[1]) {
-              tglMuatIso = parseDateToIso(ddMatch[1]);
-            }
-            if (!tglMuatIso) {
-              tglMuatIso = parseDateToIso(fullText.slice(0, 800)) || todayIso;
-            }
+            // Proses deduplikasi & penggabungan halaman per item
+            extractedItems.forEach(item => {
+              const docKey = (item.no_surat_jalan || "").trim().toUpperCase();
+              if (!docKey) {
+                batchMergedMap.set(`NO_DOC_${batchMergedMap.size + 1}`, item);
+                return;
+              }
 
-            // 3. Route ("Route : MR5CE7-K1\3") -> Rute / Customer
-            let routeCode = "";
-            const routeMatch = fullText.match(/\bRoute\s*[:\-]?\s*([^\s\r\n]+)/i);
-            if (routeMatch && routeMatch[1]) {
-              routeCode = routeMatch[1].trim().toUpperCase();
-            }
+              // 1. Jika No. Tripnote/DN sudah ada di halaman sebelumnya pada batch ini -> gabung jadi 1 SPJ
+              if (batchMergedMap.has(docKey)) {
+                mergedContinuationPages++;
+                const existing = batchMergedMap.get(docKey);
+                if (!existing.customer && item.customer) existing.customer = item.customer;
+                if (!existing.project && item.project) existing.project = item.project;
+                existing.source_info += `, Hal. ${p}`;
+                return;
+              }
 
-            let matchedMaster = null;
-            if (routeCode) {
-              matchedMaster = appState.routes.find(r => (r.customer || "").trim().toUpperCase() === routeCode)
-                || appState.routes.find(r => (r.customer || "").trim().toUpperCase().includes(routeCode))
-                || matchRouteFromText(routeCode);
-            }
-            if (!matchedMaster) {
-              matchedMaster = matchRouteFromText(fullText.slice(0, 900));
-            }
+              // 2. Jika No. Tripnote/DN sudah pernah tersimpan di Google Sheet -> lewati & beri Note
+              if (existingSheetMap.has(docKey)) {
+                const savedOrder = existingSheetMap.get(docKey);
+                duplicateNotes.push(
+                  `<b>${docKey}</b> (${item.source_info}) dilewati karena <b>sudah tersimpan di Google Sheet</b> pada <b>${savedOrder.no_spj}</b> (Tgl: ${savedOrder.tgl_muat}, Rute: ${savedOrder.customer || "-"}, Status: ${savedOrder.status_gr}).`
+                );
+                return;
+              }
 
-            const finalCustomer = routeCode || (matchedMaster ? matchedMaster.customer : "");
+              // 3. Jika No. Tripnote/DN sudah ada di tabel antrean modal saat ini -> lewati & beri Note
+              if (currentQueueSet.has(docKey)) {
+                duplicateNotes.push(
+                  `<b>${docKey}</b> (${item.source_info}) dilewati karena <b>sudah ada di daftar antrean SPJ di bawah</b>.`
+                );
+                return;
+              }
 
-            if (tripNoteNo || finalCustomer) {
-              parsedTrips.push({
-                no_surat_jalan: tripNoteNo,
-                tgl_muat: tglMuatIso,
-                customer: finalCustomer,
-                project: matchedMaster ? matchedMaster.project : "",
-                asal: matchedMaster && matchedMaster.origin !== "NONE" ? matchedMaster.origin : "",
-                tujuan: matchedMaster && matchedMaster.destination !== "NONE TUJUAN" ? matchedMaster.destination : "",
-                jenis_armada: matchedMaster && matchedMaster.vehicle_type !== "NONE ARMADA" ? matchedMaster.vehicle_type : "",
-                kilogram: ""
-              });
-            }
+              batchMergedMap.set(docKey, item);
+            });
           }
         } catch (err) {
           console.error("Gagal membaca PDF:", file.name, err);
@@ -1302,14 +1362,40 @@
         tbody.innerHTML = "";
       }
 
-      let addedCount = 0;
-      parsedTrips.forEach(item => {
-        addMultiSpjRow(item);
-        addedCount++;
+      const finalNewTrips = Array.from(batchMergedMap.values());
+      finalNewTrips.forEach(item => {
+        addMultiSpjRow({ ...item, is_from_pdf: true });
       });
 
       reindexMultiSpjNumbers();
-      statusEl.textContent = `Selesai memindai ${files.length} file PDF: ${addedCount} baris SPJ siap diperiksa & disimpan.`;
+
+      // Tampilkan Panel Review Hasil Upload & Catatan Duplikat
+      reviewPanel.classList.remove("hidden");
+      reviewBadges.innerHTML = `
+        <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold">Total Halaman: ${totalPagesScanned}</span>
+        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">+${finalNewTrips.length} SPJ Baru Siap Review</span>
+        ${mergedContinuationPages > 0 ? `<span class="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 font-semibold">${mergedContinuationPages} Hal. Lanjutan Digabung</span>` : ""}
+        ${duplicateNotes.length > 0 ? `<span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">${duplicateNotes.length} Duplikat Dilewati</span>` : ""}
+      `;
+
+      if (duplicateNotes.length > 0) {
+        dupNotesEl.classList.remove("hidden");
+        dupNotesEl.innerHTML = `
+          <div class="font-bold text-amber-900 mb-1">⚠️ Catatan Duplikat (Tidak Dimasukkan Ulang):</div>
+          <ul class="list-disc pl-5 space-y-0.5">
+            ${duplicateNotes.map(n => `<li>${n}</li>`).join("")}
+          </ul>
+        `;
+      } else {
+        dupNotesEl.classList.add("hidden");
+        dupNotesEl.innerHTML = "";
+      }
+
+      reviewSummaryEl.innerHTML = finalNewTrips.length > 0
+        ? `Silakan periksa daftar <b>${finalNewTrips.length} SPJ baru</b> (bertanda <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">BARU (PDF)</span>) pada tabel di bawah ini, lengkapi Nopol/Armada/Driver jika perlu, lalu klik <b>Simpan Semua SPJ</b>.`
+        : `Tidak ada dokumen baru yang ditambahkan karena seluruh nomor Tripnote/DN di PDF sudah terdaftar sebelumnya.`;
+
+      statusEl.textContent = `Selesai memindai ${files.length} file PDF (${totalPagesScanned} halaman): ${finalNewTrips.length} SPJ baru masuk tabel review, ${duplicateNotes.length} duplikat dilewati.`;
     }
 
     function addMultiSpjRow(preset = {}) {
@@ -1320,9 +1406,12 @@
       const bulkDriver = document.getElementById("bulk-new-driver").value.trim();
 
       const tr = document.createElement("tr");
-      tr.className = "hover:bg-slate-50";
+      tr.className = preset.is_from_pdf ? "bg-emerald-50/40 hover:bg-emerald-50/80" : "hover:bg-slate-50";
       tr.innerHTML = `
-        <td class="p-2"><input type="text" value="${preset.no_spj || ""}" oninput="this.title=this.value" title="${preset.no_spj || ""}" required class="row-spj w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs bg-slate-50 font-bold text-slate-900" /></td>
+        <td class="p-2">
+          <input type="text" value="${preset.no_spj || ""}" oninput="this.title=this.value" title="${preset.no_spj || ""}" required class="row-spj w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs bg-slate-50 font-bold text-slate-900" />
+          ${preset.is_from_pdf ? `<div class="mt-1"><span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">BARU (PDF)</span> <span class="text-[10px] text-slate-400">${preset.source_info || ""}</span></div>` : ""}
+        </td>
         <td class="p-2"><input type="date" value="${preset.tgl_muat || todayIso}" required class="row-tgl w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
         <td class="p-2"><input type="text" value="${preset.no_surat_jalan || ""}" oninput="this.title=this.value" title="${preset.no_surat_jalan || ""}" placeholder="No. DN / SJ *" required class="row-dn w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs" /></td>
         <td class="p-2">
@@ -1348,6 +1437,8 @@
 
     function clearAllSpjRows() {
       document.getElementById("multi-spj-tbody").innerHTML = "";
+      document.getElementById("pdf-review-panel").classList.add("hidden");
+      document.getElementById("pdf-duplicate-notes").classList.add("hidden");
       addMultiSpjRow();
     }
 
@@ -1395,7 +1486,9 @@
 
     function openCreateOrderModal() {
       document.getElementById("pdf-tripnote-upload").value = "";
-      document.getElementById("pdf-parse-status").textContent = "Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, atau klik '+ Tambah Baris SPJ' untuk input manual.";
+      document.getElementById("pdf-parse-status").textContent = "Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, lalu review hasilnya pada tabel di bawah sebelum disimpan.";
+      document.getElementById("pdf-review-panel").classList.add("hidden");
+      document.getElementById("pdf-duplicate-notes").classList.add("hidden");
       document.getElementById("bulk-new-nopol").value = "";
       document.getElementById("bulk-new-armada").value = "";
       document.getElementById("bulk-new-driver").value = "";
@@ -1634,7 +1727,7 @@
       }
     });
 
-    // --- BILLING & INVOICE SUMMARY (NO. FAKTUR PAJAK) ---
+    // --- BILLING & INVOICE SUMMARY ---
     function getFilteredBillings() {
       const q = document.getElementById("filter-bill-search").value.toLowerCase().trim();
       const proj = document.getElementById("filter-bill-project").value;
