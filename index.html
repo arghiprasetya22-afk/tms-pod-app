@@ -6,13 +6,7 @@
   <title>TMS POD & Penagihan 2026 — PT Global Service Indonesia</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <style>
-    @media print {
-      body * { visibility: hidden; }
-      #print-spj-area, #print-spj-area * { visibility: visible; }
-      #print-spj-area { position: absolute; left: 0; top: 0; width: 100%; }
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
 
@@ -47,7 +41,7 @@
         <div class="flex items-center gap-3">
           <span class="bg-indigo-500 text-white font-bold px-2.5 py-1 rounded-lg text-sm">TMS 2026</span>
           <div>
-            <div class="font-bold text-sm sm:text-base leading-tight">Monitoring POD, SPJ & Penagihan</div>
+            <div class="font-bold text-sm sm:text-base leading-tight">Monitoring POD & Penagihan</div>
             <div class="text-xs text-slate-400" id="header-user-info">-</div>
           </div>
         </div>
@@ -67,6 +61,7 @@
           <button onclick="switchMainTab('routes')" id="tab-btn-routes" class="super-admin-only hidden nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Master Tarif & Rute</button>
           <button onclick="switchMainTab('fleets')" id="tab-btn-fleets" class="super-admin-only hidden nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Master Armada</button>
           <button onclick="switchMainTab('users')" id="tab-btn-users" class="super-admin-only hidden nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Manajemen User</button>
+          <button onclick="switchMainTab('audit')" id="tab-btn-audit" class="super-admin-only hidden nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Riwayat Audit & Log</button>
         </div>
       </div>
     </header>
@@ -110,7 +105,7 @@
         <!-- FILTER BAR & ACTION BUTTONS -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2.5 flex-1">
-            <input type="text" id="filter-order-search" oninput="currentOrderPage=1; renderOrdersTable()" placeholder="Cari SPJ, No SJ, Customer, Nopol, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-full sm:w-64" />
+            <input type="text" id="filter-order-search" oninput="currentOrderPage=1; renderOrdersTable()" placeholder="Cari No SJ, Ref, Customer, Nopol, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-full sm:w-64" />
             <select id="filter-order-project" onchange="currentOrderPage=1; renderOrdersTable()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white">
               <option value="">Semua Project</option>
             </select>
@@ -128,10 +123,13 @@
             </button>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="exportOrdersToExcel()" class="px-3.5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+              📥 Export Excel (.xlsx)
+            </button>
             <button onclick="openBulkPodModal()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold shadow-sm">
               Bulk Update POD (<span id="selected-order-count">0</span>)
             </button>
-            <button onclick="openCreateOrderModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow-sm">+ Input Multi-SPJ / Scan PDF</button>
+            <button onclick="openCreateOrderModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow-sm">+ Input Order / Scan PDF</button>
           </div>
         </div>
 
@@ -142,7 +140,7 @@
               <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600">
                 <tr>
                   <th class="py-3 px-3 w-8"><input type="checkbox" id="check-all-orders" onchange="toggleSelectAllOrders(this.checked)" /></th>
-                  <th class="py-3 px-3">No. SPJ / Tgl</th>
+                  <th class="py-3 px-3">Ref / Tgl Muat</th>
                   <th class="py-3 px-3">Project & Rute</th>
                   <th class="py-3 px-3">No. Surat Jalan</th>
                   <th class="py-3 px-3">Armada / Driver</th>
@@ -197,7 +195,7 @@
         <div id="billing-sub-items">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-2.5">
-              <input type="text" id="filter-bill-search" oninput="renderBillingItemsTable()" placeholder="Cari SPJ, SJ, Customer, No Invoice, Faktur Pajak..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-64" />
+              <input type="text" id="filter-bill-search" oninput="renderBillingItemsTable()" placeholder="Cari SJ, Customer, No Invoice, Faktur Pajak..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-64" />
               <select id="filter-bill-project" onchange="renderBillingItemsTable()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white">
                 <option value="">Semua Project</option>
               </select>
@@ -212,9 +210,14 @@
                 ↻ Reset Filter & Refresh
               </button>
             </div>
-            <button onclick="openBillingBatchModal()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold shadow-sm">
-              Proses / Edit Tagihan Terpilih (<span id="selected-bill-count">0</span>)
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="exportBillingItemsToExcel()" class="px-3.5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+                📥 Export Excel (.xlsx)
+              </button>
+              <button onclick="openBillingBatchModal()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold shadow-sm">
+                Proses / Edit Tagihan Terpilih (<span id="selected-bill-count">0</span>)
+              </button>
+            </div>
           </div>
 
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -223,7 +226,7 @@
                 <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600">
                   <tr>
                     <th class="py-3 px-3 w-8"><input type="checkbox" id="check-all-bills" onchange="toggleSelectAllBills(this.checked)" /></th>
-                    <th class="py-3 px-3">No. SPJ / Tgl</th>
+                    <th class="py-3 px-3">Ref / Tgl Muat</th>
                     <th class="py-3 px-3">Project & Customer</th>
                     <th class="py-3 px-3">No. Surat Jalan</th>
                     <th class="py-3 px-3 text-right">Tarif (Rp)</th>
@@ -362,19 +365,73 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 6: RIWAYAT AUDIT EDIT & LOG HAPUS (SUPER_ADMIN) ==================== -->
+      <section id="section-audit" class="hidden space-y-6">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Jejak Audit Edit Data Order, POD & Penagihan (Log_Audit_Edit)</h3>
+              <p class="text-xs text-slate-500">Mencatat setiap perubahan nilai lama → nilai baru beserta nama user dan waktu perubahan.</p>
+            </div>
+            <button type="button" onclick="exportAuditLogsToExcel()" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold">
+              📥 Export Excel Log Audit
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-96">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600 sticky top-0">
+                <tr>
+                  <th class="py-2.5 px-3">Waktu</th>
+                  <th class="py-2.5 px-3">User (Role)</th>
+                  <th class="py-2.5 px-3">Aksi</th>
+                  <th class="py-2.5 px-3">No. Ref</th>
+                  <th class="py-2.5 px-3">No. Surat Jalan</th>
+                  <th class="py-2.5 px-3">Field Diubah</th>
+                  <th class="py-2.5 px-3">Nilai Lama</th>
+                  <th class="py-2.5 px-3">Nilai Baru</th>
+                </tr>
+              </thead>
+              <tbody id="audit-logs-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200">
+            <h3 class="text-sm font-bold text-slate-900">Riwayat Pembatalan & Penghapusan Order (Log_Hapus_Order)</h3>
+          </div>
+          <div class="overflow-x-auto max-h-80">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600 sticky top-0">
+                <tr>
+                  <th class="py-2.5 px-3">Waktu</th>
+                  <th class="py-2.5 px-3">User</th>
+                  <th class="py-2.5 px-3">Tindakan</th>
+                  <th class="py-2.5 px-3">No. Ref</th>
+                  <th class="py-2.5 px-3">No. SJ</th>
+                  <th class="py-2.5 px-3">Project / Rute</th>
+                  <th class="py-2.5 px-3">Alasan</th>
+                </tr>
+              </thead>
+              <tbody id="delete-logs-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
   <datalist id="datalist-customers"></datalist>
   <datalist id="datalist-nopol"></datalist>
 
-  <!-- ==================== MODAL: INPUT MULTI-SPJ & PARSER PDF REGULAR TRIP NOTE / DN ==================== -->
+  <!-- ==================== MODAL: INPUT MULTI-ORDER & PARSER PDF REGULAR TRIP NOTE / DN ==================== -->
   <div id="modal-create-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-2 sm:p-4 z-50">
     <div class="bg-white rounded-2xl max-w-[96vw] xl:max-w-7xl w-full p-4 sm:p-6 shadow-xl max-h-[94vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <h3 class="text-lg font-bold text-slate-900">Input Order Multi-SPJ & Scan PDF Tripnote / DN</h3>
-          <p class="text-xs text-slate-500">Mendukung banyak halaman sekaligus (halaman lanjutan dengan No. Tripnote sama otomatis digabung menjadi 1 SPJ, duplikat otomatis ditandai).</p>
+          <h3 class="text-lg font-bold text-slate-900">Input Order & Scan PDF Tripnote / DN</h3>
+          <p class="text-xs text-slate-500">Mendukung banyak halaman sekaligus (halaman lanjutan dengan No. Tripnote sama otomatis digabung menjadi 1 baris, duplikat otomatis ditandai).</p>
         </div>
         <button onclick="closeModal('modal-create-order')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -387,7 +444,7 @@
             <input type="file" id="pdf-tripnote-upload" accept="application/pdf" multiple onchange="handlePdfTripnoteUpload(event)" class="text-xs text-slate-700 file:mr-3 file:py-1.5 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer" />
           </div>
           <div class="text-right text-[11px] text-indigo-800">
-            <div>Nomor SPJ Awal: <span id="spj-start-badge" class="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-200">SPJ20260001</span></div>
+            <div>Kode Ref Otomatis: <span id="spj-start-badge" class="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-200">SPJ20260001</span></div>
             <div class="mt-0.5 text-indigo-600">Regular Trip Note: Trip Note No → SJ, Route → Rute | Delivery Note: DN No → SJ, Material No → Rute.</div>
           </div>
         </div>
@@ -406,7 +463,7 @@
         </div>
       </div>
 
-      <!-- DATA ARMADA DEFAULT (OPSIONAL, BISA DITERAPKAN KE SEMUA BARIS) -->
+      <!-- DATA ARMADA DEFAULT (OPSIONAL) -->
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 mb-4">
         <div class="text-[11px] font-bold uppercase text-slate-600 mb-2">Terapkan Armada & Driver ke Semua Baris (Opsional)</div>
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-end">
@@ -430,13 +487,13 @@
         </div>
       </div>
 
-      <!-- TABEL REVIEW & EDIT MULTI-SPJ (KOLOM LEBAR & TIDAK TERPOTONG) -->
+      <!-- TABEL REVIEW & EDIT MULTI-ORDER -->
       <form id="form-create-order">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-bold text-slate-800">Tabel Review & Antrean SPJ (<span id="multi-spj-count">0</span> SPJ siap disimpan)</span>
+          <span class="text-xs font-bold text-slate-800">Tabel Review & Antrean Order (<span id="multi-spj-count">0</span> baris siap disimpan)</span>
           <div class="flex gap-2">
             <button type="button" onclick="clearAllSpjRows()" class="px-2.5 py-1 rounded border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100">Bersihkan Baris</button>
-            <button type="button" onclick="addMultiSpjRow()" class="px-3 py-1 rounded bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700">+ Tambah Baris SPJ</button>
+            <button type="button" onclick="addMultiSpjRow()" class="px-3 py-1 rounded bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700">+ Tambah Baris</button>
           </div>
         </div>
 
@@ -444,7 +501,7 @@
           <table class="min-w-[1440px] w-full text-left border-collapse text-xs">
             <thead class="bg-slate-100 border-b border-slate-200 text-[11px] uppercase text-slate-600">
               <tr>
-                <th class="py-2.5 px-2.5 min-w-[145px]">No. SPJ *</th>
+                <th class="py-2.5 px-2.5 min-w-[145px]">No. Ref *</th>
                 <th class="py-2.5 px-2.5 min-w-[140px]">Tgl Muat *</th>
                 <th class="py-2.5 px-2.5 min-w-[215px]">No. DN / Surat Jalan *</th>
                 <th class="py-2.5 px-2.5 min-w-[230px]">Nama Rute / Customer *</th>
@@ -461,10 +518,10 @@
         </div>
 
         <div class="flex items-center justify-between pt-3 border-t">
-          <div class="text-[11px] text-slate-500">Periksa seluruh hasil scan di atas. Klik <b>Simpan Semua SPJ</b> untuk memasukkan data ke Google Sheet & Web TMS.</div>
+          <div class="text-[11px] text-slate-500">Periksa seluruh hasil scan di atas. Klik <b>Simpan Semua Order</b> untuk memasukkan data ke Google Sheet & Web TMS.</div>
           <div class="flex gap-2">
             <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
-            <button type="submit" id="btn-save-order" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm">Simpan Semua SPJ</button>
+            <button type="submit" id="btn-save-order" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm">Simpan Semua Order</button>
           </div>
         </div>
       </form>
@@ -745,9 +802,6 @@
     </div>
   </div>
 
-  <!-- AREA CETAK SPJ -->
-  <div id="print-spj-area" class="hidden p-8 bg-white text-black"></div>
-
   <script>
     // TEMPEL URL WEB APP (/exec) APPS SCRIPT ANDA DI DALAM TANDA KUTIP DI BAWAH INI:
     const API_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
@@ -765,6 +819,8 @@
       routes: [],
       fleets: [],
       users: [],
+      audit_logs: [],
+      delete_logs: [],
       next_spj: "SPJ20260001"
     };
     let currentOrderPage = 1;
@@ -787,6 +843,124 @@
       const el = document.getElementById(id);
       el.classList.add("hidden");
       el.classList.remove("flex");
+    }
+
+    // --- HELPER EXPORT EXCEL (.XLSX) DENGAN LEBAR KOLOM OTOMATIS ---
+    function downloadExcelWorkbook(sheetsData, fileName) {
+      if (!window.XLSX) {
+        alert("Library Excel belum termuat. Periksa koneksi internet Anda.");
+        return;
+      }
+      const wb = XLSX.utils.book_new();
+      sheetsData.forEach(s => {
+        const ws = XLSX.utils.json_to_sheet(s.rows);
+        if (s.rows && s.rows.length > 0) {
+          const keys = Object.keys(s.rows[0]);
+          ws["!cols"] = keys.map(k => {
+            const maxLen = Math.max(
+              k.length,
+              ...s.rows.map(r => String(r[k] ?? "").length)
+            );
+            return { wch: Math.min(Math.max(maxLen + 3, 12), 45) };
+          });
+        }
+        XLSX.utils.book_append_sheet(wb, ws, s.sheetName.slice(0, 31));
+      });
+      XLSX.writeFile(wb, fileName);
+    }
+
+    function exportOrdersToExcel() {
+      const data = getFilteredOrders();
+      if (!data.length) {
+        alert("Tidak ada data order untuk diexport.");
+        return;
+      }
+      const rows = data.map((o, idx) => ({
+        "No": idx + 1,
+        "No_Ref": o.no_spj,
+        "Tgl_Muat": o.tgl_muat,
+        "Project": o.project,
+        "Customer_Rute": o.customer,
+        "Asal": o.asal || "",
+        "Tujuan": o.tujuan || "",
+        "No_Surat_Jalan": o.no_surat_jalan,
+        "Kilogram": Number(o.kilogram) || 0,
+        "Nopol": o.nopol || "",
+        "Jenis_Armada": o.jenis_armada || "",
+        "Nama_Driver": o.nama_driver || "",
+        "Status_GR": o.status_gr,
+        "Keterangan_Issue": o.keterangan_issue || "",
+        "Uang_Jalan": Number(o.uang_jalan) || 0,
+        "Tarif_Jual": Number(o.tarif_jual) || 0,
+        "Status_Tagih": o.status_tagih || "BELUM DITAGIH",
+        "No_Invoice": o.no_invoice || "",
+        "No_Faktur_Pajak": o.no_faktur_pajak || "",
+        "Dibuat_Oleh": o.created_by || ""
+      }));
+      const today = new Date().toISOString().split("T")[0];
+      downloadExcelWorkbook([{ sheetName: "Monitoring_POD_Order", rows }], `Monitoring_POD_Order_${today}.xlsx`);
+    }
+
+    function exportBillingItemsToExcel() {
+      const data = getFilteredBillings();
+      if (!data.length) {
+        alert("Tidak ada data penagihan untuk diexport.");
+        return;
+      }
+      const rows = data.map((b, idx) => ({
+        "No": idx + 1,
+        "No_Ref": b.no_spj,
+        "Tgl_Muat": b.tgl_muat,
+        "Project": b.project,
+        "Customer_Rute": b.customer,
+        "Asal": b.asal || "",
+        "Tujuan": b.tujuan || "",
+        "Nopol": b.nopol || "",
+        "Jenis_Armada": b.jenis_armada || "",
+        "No_Surat_Jalan": b.no_surat_jalan,
+        "Kilogram": Number(b.kilogram) || 0,
+        "Tarif_Jual": Number(b.tarif_jual) || 0,
+        "Status_Tagih": b.status_tagih,
+        "No_Invoice": b.no_invoice || "",
+        "No_Faktur_Pajak": b.no_faktur_pajak || "",
+        "Tgl_Tagih": b.tgl_tagih || ""
+      }));
+      const today = new Date().toISOString().split("T")[0];
+      downloadExcelWorkbook([{ sheetName: "Rekap_Penagihan_Trip", rows }], `Rekap_Penagihan_Trip_${today}.xlsx`);
+    }
+
+    function exportAuditLogsToExcel() {
+      const auditRows = (appState.audit_logs || []).map((a, i) => ({
+        "No": i + 1,
+        "Timestamp": a.timestamp,
+        "User": a.user,
+        "Role": a.role,
+        "Aksi": a.aksi,
+        "No_Ref": a.no_spj,
+        "No_Surat_Jalan": a.no_surat_jalan,
+        "Field_Diubah": a.field_diubah,
+        "Nilai_Lama": a.nilai_lama,
+        "Nilai_Baru": a.nilai_baru
+      }));
+      const delRows = (appState.delete_logs || []).map((d, i) => ({
+        "No": i + 1,
+        "Timestamp": d.timestamp,
+        "User": d.user,
+        "Role": d.role,
+        "Tindakan": d.aksi,
+        "No_Ref": d.no_spj,
+        "Tgl_Muat": d.tgl_muat,
+        "Project": d.project,
+        "Customer": d.customer,
+        "No_Surat_Jalan": d.no_surat_jalan,
+        "Status_Sebelum": d.status_sebelum,
+        "Alasan": d.alasan
+      }));
+      const today = new Date().toISOString().split("T")[0];
+      downloadExcelWorkbook([
+        { sheetName: "Log_Audit_Edit", rows: auditRows.length ? auditRows : [{ Info: "Belum ada log edit" }] },
+        { sheetName: "Log_Hapus_Order", rows: delRows.length ? delRows : [{ Info: "Belum ada log hapus" }] }
+      ], `Audit_Log_TMS_${today}.xlsx`);
     }
 
     // --- RESET FILTER & REFRESH DATA (TOMBOL MERAH) ---
@@ -911,6 +1085,7 @@
           renderRoutesTable();
           renderFleetsTable();
           renderUsersTable();
+          renderAuditLogsTable();
         }
         return { ok: true };
       } catch (err) {
@@ -949,14 +1124,14 @@
     }
 
     function switchMainTab(tab) {
-      ["orders", "billing", "routes", "fleets", "users"].forEach(t => {
+      ["orders", "billing", "routes", "fleets", "users", "audit"].forEach(t => {
         const sec = document.getElementById(`section-${t}`);
         if (sec) sec.classList.toggle("hidden", t !== tab);
         const btn = document.getElementById(`tab-btn-${t}`);
         if (btn) {
           btn.className = (t === tab ? "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-400 text-white whitespace-nowrap"
             : "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap")
-            + (["routes", "fleets", "users"].includes(t) && currentUser.role !== "SUPER_ADMIN" ? " hidden" : "");
+            + (["routes", "fleets", "users", "audit"].includes(t) && currentUser.role !== "SUPER_ADMIN" ? " hidden" : "");
         }
       });
     }
@@ -973,7 +1148,7 @@
         : "px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50";
     }
 
-    // --- RENDER ORDERS TABLE ---
+    // --- RENDER ORDERS TABLE (TANPA TOMBOL SPJ) ---
     function getFilteredOrders() {
       const q = document.getElementById("filter-order-search").value.toLowerCase().trim();
       const proj = document.getElementById("filter-order-project").value;
@@ -1039,7 +1214,6 @@
               ${o.keterangan_issue ? `<div class="text-[11px] text-slate-500 mt-1">${o.keterangan_issue}</div>` : ""}
             </td>
             <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
-              <button onclick="printSpj('${o.no_spj}')" class="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 text-xs font-semibold">SPJ</button>
               ${!lockedForAdmin ? `<button onclick="openEditOrderModal(${o.row_number})" class="px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-xs font-semibold">Edit</button>` : ""}
               ${!lockedForAdmin ? `<button onclick="openPodModal(${o.row_number})" class="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-xs font-semibold">POD</button>` : ""}
               ${!lockedForAdmin ? `<button onclick="openCancelModal(${o.row_number})" class="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-semibold">Cancel / Hapus</button>` : `<span class="text-[11px] text-slate-400 italic">Terkunci</span>`}
@@ -1073,7 +1247,7 @@
       renderOrdersTable();
     }
 
-    // --- HELPER PENOMORAN SPJ BERURUTAN (SPJ2026xxxx) ---
+    // --- HELPER PENOMORAN REFERENSI BERURUTAN ---
     function incrementSpjCode(baseSpj, offset) {
       const match = String(baseSpj || "SPJ20260001").match(/^(.*?)(\d+)$/);
       if (!match) return `${baseSpj}-${offset + 1}`;
@@ -1143,7 +1317,6 @@
 
       statusEl.textContent = `Membaca ${files.length} file PDF (Regular Trip Note / Delivery Note)...`;
 
-      // Map dokumen yang sudah tersimpan di Google Sheet (kecuali CANCEL)
       const existingSheetMap = new Map();
       (appState.orders || []).forEach(o => {
         if ((o.status_gr || "").toUpperCase() === "CANCEL") return;
@@ -1153,14 +1326,12 @@
         }
       });
 
-      // Set dokumen yang sudah ada di antrean layar saat ini
       const currentQueueSet = new Set(
         Array.from(document.querySelectorAll(".row-dn"))
           .map(i => i.value.trim().toUpperCase())
           .filter(Boolean)
       );
 
-      // Map penggabungan halaman dalam batch PDF yang sama (1 No. Tripnote/DN = 1 SPJ)
       const batchMergedMap = new Map();
       const duplicateNotes = [];
       let totalPagesScanned = 0;
@@ -1194,7 +1365,6 @@
             const extractedItems = [];
 
             if (isDeliveryNote) {
-              // ================= FORMAT 2: DELIVERY NOTE (ADM) =================
               let dnNo = "";
               const dnMatch = pageText.match(/\bDN\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
               if (dnMatch && dnMatch[1]) {
@@ -1262,7 +1432,6 @@
               });
 
             } else {
-              // ================= FORMAT 1: REGULAR TRIP NOTE =================
               let tripNoteNo = "";
               const tnMatch = pageText.match(/Trip\s*Note\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
               if (tnMatch && tnMatch[1]) {
@@ -1314,7 +1483,6 @@
               }
             }
 
-            // Proses deduplikasi & penggabungan halaman per item
             extractedItems.forEach(item => {
               const docKey = (item.no_surat_jalan || "").trim().toUpperCase();
               if (!docKey) {
@@ -1322,7 +1490,6 @@
                 return;
               }
 
-              // 1. Jika No. Tripnote/DN sudah ada di halaman sebelumnya pada batch ini -> gabung jadi 1 SPJ
               if (batchMergedMap.has(docKey)) {
                 mergedContinuationPages++;
                 const existing = batchMergedMap.get(docKey);
@@ -1332,7 +1499,6 @@
                 return;
               }
 
-              // 2. Jika No. Tripnote/DN sudah pernah tersimpan di Google Sheet -> lewati & beri Note
               if (existingSheetMap.has(docKey)) {
                 const savedOrder = existingSheetMap.get(docKey);
                 duplicateNotes.push(
@@ -1341,10 +1507,9 @@
                 return;
               }
 
-              // 3. Jika No. Tripnote/DN sudah ada di tabel antrean modal saat ini -> lewati & beri Note
               if (currentQueueSet.has(docKey)) {
                 duplicateNotes.push(
-                  `<b>${docKey}</b> (${item.source_info}) dilewati karena <b>sudah ada di daftar antrean SPJ di bawah</b>.`
+                  `<b>${docKey}</b> (${item.source_info}) dilewati karena <b>sudah ada di daftar antrean di bawah</b>.`
                 );
                 return;
               }
@@ -1369,11 +1534,10 @@
 
       reindexMultiSpjNumbers();
 
-      // Tampilkan Panel Review Hasil Upload & Catatan Duplikat
       reviewPanel.classList.remove("hidden");
       reviewBadges.innerHTML = `
         <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold">Total Halaman: ${totalPagesScanned}</span>
-        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">+${finalNewTrips.length} SPJ Baru Siap Review</span>
+        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">+${finalNewTrips.length} Baris Baru Siap Review</span>
         ${mergedContinuationPages > 0 ? `<span class="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 font-semibold">${mergedContinuationPages} Hal. Lanjutan Digabung</span>` : ""}
         ${duplicateNotes.length > 0 ? `<span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">${duplicateNotes.length} Duplikat Dilewati</span>` : ""}
       `;
@@ -1392,10 +1556,10 @@
       }
 
       reviewSummaryEl.innerHTML = finalNewTrips.length > 0
-        ? `Silakan periksa daftar <b>${finalNewTrips.length} SPJ baru</b> (bertanda <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">BARU (PDF)</span>) pada tabel di bawah ini, lengkapi Nopol/Armada/Driver jika perlu, lalu klik <b>Simpan Semua SPJ</b>.`
+        ? `Silakan periksa daftar <b>${finalNewTrips.length} baris baru</b> (bertanda <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">BARU (PDF)</span>) pada tabel di bawah ini, lengkapi Nopol/Armada/Driver jika perlu, lalu klik <b>Simpan Semua Order</b>.`
         : `Tidak ada dokumen baru yang ditambahkan karena seluruh nomor Tripnote/DN di PDF sudah terdaftar sebelumnya.`;
 
-      statusEl.textContent = `Selesai memindai ${files.length} file PDF (${totalPagesScanned} halaman): ${finalNewTrips.length} SPJ baru masuk tabel review, ${duplicateNotes.length} duplikat dilewati.`;
+      statusEl.textContent = `Selesai memindai ${files.length} file PDF (${totalPagesScanned} halaman): ${finalNewTrips.length} baris baru masuk tabel review, ${duplicateNotes.length} duplikat dilewati.`;
     }
 
     function addMultiSpjRow(preset = {}) {
@@ -1501,7 +1665,7 @@
       e.preventDefault();
       const rows = Array.from(document.querySelectorAll("#multi-spj-tbody tr"));
       if (!rows.length) {
-        alert("Tambahkan minimal 1 baris SPJ.");
+        alert("Tambahkan minimal 1 baris order.");
         return;
       }
 
@@ -1521,12 +1685,12 @@
 
       const btn = document.getElementById("btn-save-order");
       btn.disabled = true;
-      btn.textContent = `Menyimpan ${ordersPayload.length} SPJ ke Google Sheet...`;
+      btn.textContent = `Menyimpan ${ordersPayload.length} Order ke Google Sheet...`;
 
       const res = await postApi("CREATE_ORDER", { orders: ordersPayload });
 
       btn.disabled = false;
-      btn.textContent = "Simpan Semua SPJ";
+      btn.textContent = "Simpan Semua Order";
 
       if (res.status === "success") {
         closeModal("modal-create-order");
@@ -1664,35 +1828,6 @@
         alert(res.message);
       }
     });
-
-    // --- PRINT SPJ ---
-    function printSpj(noSpj) {
-      const group = appState.orders.filter(o => o.no_spj === noSpj);
-      if (!group.length) return;
-      const first = group[0];
-      const printEl = document.getElementById("print-spj-area");
-      printEl.innerHTML = `
-        <div style="font-family: Arial, sans-serif; max-width: 750px; margin: auto;">
-          <h2 style="margin:0;">SURAT PERINTAH JALAN (SPJ)</h2>
-          <p style="margin:4px 0 16px; color:#555;">PT Global Service Indonesia — Operasional Logistik</p>
-          <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:13px;">
-            <tr><td><b>No. SPJ:</b> ${first.no_spj}</td><td><b>Tanggal Muat:</b> ${first.tgl_muat}</td></tr>
-            <tr><td><b>Project:</b> ${first.project}</td><td><b>Customer / Rute:</b> ${first.customer}</td></tr>
-            <tr><td><b>Nopol / Armada:</b> ${first.nopol || "-"} (${first.jenis_armada || "-"})</td><td><b>Driver:</b> ${first.nama_driver || "-"}</td></tr>
-            <tr><td><b>Asal → Tujuan:</b> ${first.asal || "-"} → ${first.tujuan || "-"}</td><td><b>Uang Jalan:</b> ${formatRupiah(first.uang_jalan)}</td></tr>
-          </table>
-          <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; font-size:12px;">
-            <thead><tr style="background:#f1f5f9;"><th>No</th><th>No. Surat Jalan / DN</th><th>Berat (Kg)</th><th>Keterangan</th></tr></thead>
-            <tbody>
-              ${group.map((g, i) => `<tr><td align="center">${i + 1}</td><td>${g.no_surat_jalan}</td><td align="right">${g.kilogram || "-"}</td><td>${g.keterangan_issue || ""}</td></tr>`).join("")}
-            </tbody>
-          </table>
-        </div>
-      `;
-      printEl.classList.remove("hidden");
-      window.print();
-      printEl.classList.add("hidden");
-    }
 
     // --- CANCEL / HAPUS ORDER ---
     function openCancelModal(rowNum) {
@@ -1895,7 +2030,7 @@
             <td class="py-3 px-3 text-right font-bold text-slate-900">${formatRupiah(g.total_nominal)}</td>
             <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
               <button onclick="editInvoiceGroup(${idx})" class="px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-semibold">Edit Invoice</button>
-              <button onclick="exportInvoiceGroupCsv(${idx})" class="px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-xs font-semibold">Export Excel/CSV</button>
+              <button onclick="exportInvoiceGroupExcel(${idx})" class="px-2.5 py-1 rounded bg-teal-600 text-white hover:bg-teal-700 text-xs font-semibold">📥 Export Excel (.xlsx)</button>
             </td>
           </tr>
         `).join("");
@@ -1909,36 +2044,64 @@
       openBillingBatchModal(group);
     }
 
-    function exportInvoiceGroupCsv(idx) {
+    function exportInvoiceGroupExcel(idx) {
       const group = (window._filteredInvoiceGroups || [])[idx];
       if (!group) return;
 
-      const headers = ["No_Invoice", "No_Faktur_Pajak", "Tgl_Tagih", "Status_Tagih", "No_SPJ", "Tgl_Muat", "Project", "Customer", "Nopol", "No_Surat_Jalan", "Kilogram", "Tarif_Jual"];
-      const rows = group.items.map(it => [
-        group.raw_no_invoice || "",
-        group.raw_no_faktur_pajak || "",
-        group.tgl_tagih || "",
-        group.status_tagih || "",
-        it.no_spj,
-        it.tgl_muat,
-        it.project,
-        it.customer,
-        it.nopol,
-        it.no_surat_jalan,
-        it.kilogram || 0,
-        it.tarif_jual || 0
-      ]);
+      const rows = group.items.map((it, i) => ({
+        "No": i + 1,
+        "No_Invoice": group.raw_no_invoice || "",
+        "No_Faktur_Pajak": group.raw_no_faktur_pajak || "",
+        "Tgl_Tagih": group.tgl_tagih || "",
+        "Status_Tagih": group.status_tagih || "",
+        "No_Ref": it.no_spj,
+        "Tgl_Muat": it.tgl_muat,
+        "Project": it.project,
+        "Customer_Rute": it.customer,
+        "Asal": it.asal || "",
+        "Tujuan": it.tujuan || "",
+        "Nopol": it.nopol || "",
+        "No_Surat_Jalan": it.no_surat_jalan,
+        "Kilogram": Number(it.kilogram) || 0,
+        "Tarif_Jual": Number(it.tarif_jual) || 0
+      }));
 
-      const csvContent = [headers, ...rows]
-        .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
-        .join("\n");
-
-      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
       const safeName = (group.raw_no_invoice || "DRAFT_REKAP").replace(/[^a-zA-Z0-9_-]/g, "_");
-      link.href = URL.createObjectURL(blob);
-      link.download = `Rekap_Tagihan_${safeName}.csv`;
-      link.click();
+      downloadExcelWorkbook([{ sheetName: "Rincian_Invoice", rows }], `Rekap_Tagihan_${safeName}.xlsx`);
+    }
+
+    // --- RENDER AUDIT & LOG HAPUS ---
+    function renderAuditLogsTable() {
+      const audits = appState.audit_logs || [];
+      document.getElementById("audit-logs-tbody").innerHTML = audits.length === 0
+        ? `<tr><td colspan="8" class="py-5 text-center text-slate-400">Belum ada riwayat perubahan data.</td></tr>`
+        : audits.map(a => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-3 whitespace-nowrap">${a.timestamp}</td>
+            <td class="py-2 px-3">${a.user} <span class="text-[10px] text-slate-400">(${a.role})</span></td>
+            <td class="py-2 px-3 font-semibold text-indigo-700">${a.aksi}</td>
+            <td class="py-2 px-3 font-mono font-bold">${a.no_spj}</td>
+            <td class="py-2 px-3 font-mono">${a.no_surat_jalan}</td>
+            <td class="py-2 px-3 font-semibold">${a.field_diubah}</td>
+            <td class="py-2 px-3 text-rose-600">${a.nilai_lama}</td>
+            <td class="py-2 px-3 text-emerald-700 font-semibold">${a.nilai_baru}</td>
+          </tr>
+        `).join("");
+
+      const dels = appState.delete_logs || [];
+      document.getElementById("delete-logs-tbody").innerHTML = dels.length === 0
+        ? `<tr><td colspan="7" class="py-5 text-center text-slate-400">Belum ada riwayat cancel/hapus order.</td></tr>`
+        : dels.map(d => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-3 whitespace-nowrap">${d.timestamp}</td>
+            <td class="py-2 px-3">${d.user}</td>
+            <td class="py-2 px-3 font-bold text-rose-700">${d.aksi}</td>
+            <td class="py-2 px-3 font-mono font-bold">${d.no_spj}</td>
+            <td class="py-2 px-3 font-mono">${d.no_surat_jalan}</td>
+            <td class="py-2 px-3">${d.project} - ${d.customer}</td>
+            <td class="py-2 px-3">${d.alasan}</td>
+          </tr>
+        `).join("");
     }
 
     // --- MASTER TARIF, ARMADA & USER (SUPER_ADMIN) ---
