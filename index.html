@@ -70,7 +70,6 @@
 
       <!-- ==================== TAB 1: MONITORING POD & ORDER ==================== -->
       <section id="section-orders">
-        <!-- KPI CARDS -->
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
           <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
             <div class="text-[11px] font-semibold text-slate-500 uppercase">Total Trip</div>
@@ -102,7 +101,6 @@
           </div>
         </div>
 
-        <!-- FILTER BAR & ACTION BUTTONS -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2.5 flex-1">
             <input type="text" id="filter-order-search" oninput="currentOrderPage=1; renderOrdersTable()" placeholder="Cari No SJ, Ref, Customer, Nopol, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-full sm:w-64" />
@@ -133,7 +131,6 @@
           </div>
         </div>
 
-        <!-- ORDERS TABLE -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs sm:text-sm">
@@ -425,13 +422,13 @@
   <datalist id="datalist-customers"></datalist>
   <datalist id="datalist-nopol"></datalist>
 
-  <!-- ==================== MODAL: INPUT MULTI-ORDER & PARSER PDF REGULAR TRIP NOTE / DN ==================== -->
+  <!-- ==================== MODAL: INPUT MULTI-ORDER & PARSER PDF ==================== -->
   <div id="modal-create-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-2 sm:p-4 z-50">
     <div class="bg-white rounded-2xl max-w-[96vw] xl:max-w-7xl w-full p-4 sm:p-6 shadow-xl max-h-[94vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-3">
         <div>
           <h3 class="text-lg font-bold text-slate-900">Input Order & Scan PDF Tripnote / DN</h3>
-          <p class="text-xs text-slate-500">Mendukung banyak halaman sekaligus (halaman lanjutan dengan No. Tripnote sama otomatis digabung menjadi 1 baris, duplikat otomatis ditandai).</p>
+          <p class="text-xs text-slate-500">Kolom <b>Nama Rute / Customer</b> dikunci ketat ke <b>Master_Tarif_Rute</b> agar Tarif Jual & Uang Jalan selalu terdeteksi otomatis.</p>
         </div>
         <button onclick="closeModal('modal-create-order')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -445,14 +442,13 @@
           </div>
           <div class="text-right text-[11px] text-indigo-800">
             <div>Kode Ref Otomatis: <span id="spj-start-badge" class="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-200">SPJ20260001</span></div>
-            <div class="mt-0.5 text-indigo-600">Regular Trip Note: Trip Note No → SJ, Route → Rute | Delivery Note: DN No → SJ, Material No → Rute.</div>
+            <div class="mt-0.5 text-indigo-600">Nama Rute wajib cocok dengan daftar Master Tarif & Rute.</div>
           </div>
         </div>
         <div id="pdf-parse-status" class="text-xs text-indigo-700 mt-2 font-medium">
-          Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, lalu review hasilnya pada tabel di bawah sebelum disimpan.
+          Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, atau pilih Nama Rute dari daftar validasi pada tabel di bawah.
         </div>
 
-        <!-- PANEL REVIEW & CATATAN DUPLIKAT HASIL SCAN PDF -->
         <div id="pdf-review-panel" class="hidden mt-3 bg-white border border-indigo-200 rounded-lg p-3.5 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
             <div class="text-xs font-bold text-slate-900">📋 Hasil Scan & Review Dokumen PDF</div>
@@ -487,10 +483,13 @@
         </div>
       </div>
 
+      <!-- BANNER ERROR VALIDASI RUTE -->
+      <div id="create-route-error-box" class="hidden mb-3 bg-rose-50 border border-rose-300 rounded-xl p-3 text-xs text-rose-800"></div>
+
       <!-- TABEL REVIEW & EDIT MULTI-ORDER -->
       <form id="form-create-order">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-bold text-slate-800">Tabel Review & Antrean Order (<span id="multi-spj-count">0</span> baris siap disimpan)</span>
+          <span class="text-xs font-bold text-slate-800">Tabel Review & Antrean Order (<span id="multi-spj-count">0</span> baris)</span>
           <div class="flex gap-2">
             <button type="button" onclick="clearAllSpjRows()" class="px-2.5 py-1 rounded border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100">Bersihkan Baris</button>
             <button type="button" onclick="addMultiSpjRow()" class="px-3 py-1 rounded bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700">+ Tambah Baris</button>
@@ -498,18 +497,18 @@
         </div>
 
         <div class="border border-slate-200 rounded-xl overflow-x-auto mb-4">
-          <table class="min-w-[1440px] w-full text-left border-collapse text-xs">
+          <table class="min-w-[1480px] w-full text-left border-collapse text-xs">
             <thead class="bg-slate-100 border-b border-slate-200 text-[11px] uppercase text-slate-600">
               <tr>
-                <th class="py-2.5 px-2.5 min-w-[145px]">No. Ref *</th>
-                <th class="py-2.5 px-2.5 min-w-[140px]">Tgl Muat *</th>
-                <th class="py-2.5 px-2.5 min-w-[215px]">No. DN / Surat Jalan *</th>
-                <th class="py-2.5 px-2.5 min-w-[230px]">Nama Rute / Customer *</th>
-                <th class="py-2.5 px-2.5 min-w-[175px]">Project</th>
+                <th class="py-2.5 px-2.5 min-w-[140px]">No. Ref *</th>
+                <th class="py-2.5 px-2.5 min-w-[135px]">Tgl Muat *</th>
+                <th class="py-2.5 px-2.5 min-w-[205px]">No. DN / Surat Jalan *</th>
+                <th class="py-2.5 px-2.5 min-w-[270px]">Nama Rute / Customer (Validasi Master) *</th>
+                <th class="py-2.5 px-2.5 min-w-[170px]">Project</th>
                 <th class="py-2.5 px-2.5 min-w-[125px]">Nopol</th>
-                <th class="py-2.5 px-2.5 min-w-[125px]">Armada</th>
-                <th class="py-2.5 px-2.5 min-w-[155px]">Driver</th>
-                <th class="py-2.5 px-2.5 min-w-[105px]">Kg</th>
+                <th class="py-2.5 px-2.5 min-w-[120px]">Armada</th>
+                <th class="py-2.5 px-2.5 min-w-[150px]">Driver</th>
+                <th class="py-2.5 px-2.5 min-w-[100px]">Kg</th>
                 <th class="py-2.5 px-2 text-center w-10"></th>
               </tr>
             </thead>
@@ -518,7 +517,7 @@
         </div>
 
         <div class="flex items-center justify-between pt-3 border-t">
-          <div class="text-[11px] text-slate-500">Periksa seluruh hasil scan di atas. Klik <b>Simpan Semua Order</b> untuk memasukkan data ke Google Sheet & Web TMS.</div>
+          <div class="text-[11px] text-slate-500">Pastikan seluruh kolom <b>Nama Rute</b> bertanda hijau (<b class="text-emerald-700">✓ Valid</b>) dengan Tarif & UJ terdeteksi sebelum menyimpan.</div>
           <div class="flex gap-2">
             <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
             <button type="submit" id="btn-save-order" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm">Simpan Semua Order</button>
@@ -528,7 +527,7 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL: EDIT DETAIL ORDER LENGKAP ==================== -->
+  <!-- ==================== MODAL: EDIT DETAIL ORDER LENGKAP (DENGAN VALIDASI RUTE) ==================== -->
   <div id="modal-edit-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold text-slate-900 mb-1">Edit Detail Order / Surat Jalan</h3>
@@ -541,8 +540,9 @@
             <input type="date" id="edit-tgl" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Customer / Kode Rute</label>
-            <input type="text" id="edit-customer" list="datalist-customers" oninput="autofillRouteDetails('edit')" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Customer / Kode Rute *</label>
+            <input type="text" id="edit-customer" list="datalist-customers" oninput="autofillRouteDetails('edit')" onblur="normalizeEditRouteInput()" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <div id="edit-route-validation-badge" class="mt-1 text-[11px]"></div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -845,7 +845,14 @@
       el.classList.remove("flex");
     }
 
-    // --- HELPER EXPORT EXCEL (.XLSX) DENGAN LEBAR KOLOM OTOMATIS ---
+    // --- HELPER VALIDASI RUTE MASTER ---
+    function findValidMasterRoute(routeText) {
+      const clean = String(routeText || "").trim().toLowerCase();
+      if (!clean) return null;
+      return (appState.routes || []).find(r => (r.customer || "").trim().toLowerCase() === clean) || null;
+    }
+
+    // --- EXPORT EXCEL (.XLSX) ---
     function downloadExcelWorkbook(sheetsData, fileName) {
       if (!window.XLSX) {
         alert("Library Excel belum termuat. Periksa koneksi internet Anda.");
@@ -963,7 +970,7 @@
       ], `Audit_Log_TMS_${today}.xlsx`);
     }
 
-    // --- RESET FILTER & REFRESH DATA (TOMBOL MERAH) ---
+    // --- RESET FILTER & REFRESH DATA ---
     async function resetFilterAndRefresh() {
       const topBtn = document.getElementById("btn-top-reset-refresh");
       if (topBtn) {
@@ -971,7 +978,7 @@
         topBtn.textContent = "↻ Memuat Ulang...";
       }
 
-      const filterIds = [
+      [
         "filter-order-search",
         "filter-order-project",
         "filter-order-status",
@@ -982,8 +989,7 @@
         "filter-inv-status",
         "filter-route-search",
         "filter-fleet-search"
-      ];
-      filterIds.forEach(id => {
+      ].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";
       });
@@ -1118,9 +1124,13 @@
     }
 
     function populateDatalists() {
-      const custList = [...new Set(appState.routes.map(r => r.customer))].sort();
-      document.getElementById("datalist-customers").innerHTML = custList.map(c => `<option value="${c}">`).join("");
-      document.getElementById("datalist-nopol").innerHTML = appState.fleets.map(f => `<option value="${f.nopol}">${f.vehicle_type} - ${f.driver_name}</option>`).join("");
+      const sortedRoutes = [...appState.routes].sort((a, b) => a.customer.localeCompare(b.customer));
+      document.getElementById("datalist-customers").innerHTML = sortedRoutes.map(r =>
+        `<option value="${r.customer}">${r.project} | Tarif: ${formatRupiah(r.base_rate)} | UJ: ${formatRupiah(r.uang_jalan)}</option>`
+      ).join("");
+      document.getElementById("datalist-nopol").innerHTML = appState.fleets.map(f =>
+        `<option value="${f.nopol}">${f.vehicle_type} - ${f.driver_name}</option>`
+      ).join("");
     }
 
     function switchMainTab(tab) {
@@ -1148,7 +1158,7 @@
         : "px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50";
     }
 
-    // --- RENDER ORDERS TABLE (TANPA TOMBOL SPJ) ---
+    // --- RENDER ORDERS TABLE ---
     function getFilteredOrders() {
       const q = document.getElementById("filter-order-search").value.toLowerCase().trim();
       const proj = document.getElementById("filter-order-project").value;
@@ -1247,7 +1257,7 @@
       renderOrdersTable();
     }
 
-    // --- HELPER PENOMORAN REFERENSI BERURUTAN ---
+    // --- HELPER PENOMORAN REFERENSI ---
     function incrementSpjCode(baseSpj, offset) {
       const match = String(baseSpj || "SPJ20260001").match(/^(.*?)(\d+)$/);
       if (!match) return `${baseSpj}-${offset + 1}`;
@@ -1304,7 +1314,7 @@
       return "";
     }
 
-    // --- PDF PARSER MULTI-FILE & MULTI-HALAMAN + DEDUPLIKASI & REVIEW ---
+    // --- PDF PARSER MULTI-FILE & MULTI-HALAMAN ---
     async function handlePdfTripnoteUpload(event) {
       const files = Array.from(event.target.files || []);
       if (!files.length) return;
@@ -1420,7 +1430,7 @@
                   extractedItems.push({
                     no_surat_jalan: dnNo,
                     tgl_muat: tglMuatIso,
-                    customer: matRoute || (matchedMaster ? matchedMaster.customer : ""),
+                    customer: matchedMaster ? matchedMaster.customer : matRoute,
                     project: matchedMaster ? matchedMaster.project : "",
                     asal: matchedMaster && matchedMaster.origin !== "NONE" ? matchedMaster.origin : "",
                     tujuan: matchedMaster && matchedMaster.destination !== "NONE TUJUAN" ? matchedMaster.destination : "",
@@ -1466,7 +1476,7 @@
                 matchedMaster = matchRouteFromText(pageText.slice(0, 900));
               }
 
-              const finalCustomer = routeCode || (matchedMaster ? matchedMaster.customer : "");
+              const finalCustomer = matchedMaster ? matchedMaster.customer : routeCode;
 
               if (tripNoteNo || finalCustomer) {
                 extractedItems.push({
@@ -1556,10 +1566,54 @@
       }
 
       reviewSummaryEl.innerHTML = finalNewTrips.length > 0
-        ? `Silakan periksa daftar <b>${finalNewTrips.length} baris baru</b> (bertanda <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">BARU (PDF)</span>) pada tabel di bawah ini, lengkapi Nopol/Armada/Driver jika perlu, lalu klik <b>Simpan Semua Order</b>.`
+        ? `Periksa indikator status pada kolom <b>Nama Rute / Customer</b> di bawah. Jika ada baris bertanda merah (<b>⚠️ Rute tidak ada di Master</b>), pilih nama rute yang benar dari daftar saran sebelum menyimpan.`
         : `Tidak ada dokumen baru yang ditambahkan karena seluruh nomor Tripnote/DN di PDF sudah terdaftar sebelumnya.`;
 
       statusEl.textContent = `Selesai memindai ${files.length} file PDF (${totalPagesScanned} halaman): ${finalNewTrips.length} baris baru masuk tabel review, ${duplicateNotes.length} duplikat dilewati.`;
+    }
+
+    // --- VALIDASI & INDIKATOR RUTE PER BARIS DI TABEL INPUT ---
+    function validateMultiRowRoute(tr, autoNormalize = false) {
+      const custInput = tr.querySelector(".row-cust");
+      const badgeEl = tr.querySelector(".row-route-badge");
+      const projInput = tr.querySelector(".row-proj");
+      const asalInput = tr.querySelector(".row-asal");
+      const tujuanInput = tr.querySelector(".row-tujuan");
+      const armadaInput = tr.querySelector(".row-armada");
+
+      const rawVal = custInput.value.trim();
+      const match = findValidMasterRoute(rawVal);
+
+      if (match) {
+        if (autoNormalize) {
+          custInput.value = match.customer;
+          custInput.title = match.customer;
+        }
+        custInput.classList.remove("border-rose-400", "bg-rose-50", "text-rose-900");
+        custInput.classList.add("border-emerald-400", "bg-emerald-50/40", "text-slate-900");
+
+        projInput.value = match.project || "";
+        projInput.title = match.project || "";
+        asalInput.value = match.origin && match.origin !== "NONE" ? match.origin : "";
+        tujuanInput.value = match.destination && match.destination !== "NONE TUJUAN" ? match.destination : "";
+        if (match.vehicle_type && match.vehicle_type !== "NONE ARMADA" && !armadaInput.value) {
+          armadaInput.value = match.vehicle_type;
+        }
+
+        badgeEl.innerHTML = `<span class="text-emerald-700 font-semibold">✓ Valid • Tarif: ${formatRupiah(match.base_rate)} | UJ: ${formatRupiah(match.uang_jalan)}</span>`;
+        return true;
+      } else {
+        custInput.classList.remove("border-emerald-400", "bg-emerald-50/40");
+        custInput.classList.add("border-rose-400", "bg-rose-50", "text-rose-900");
+        projInput.value = "";
+        asalInput.value = "";
+        tujuanInput.value = "";
+
+        badgeEl.innerHTML = rawVal
+          ? `<span class="text-rose-600 font-bold">⚠️ Rute tidak ada di Master (Tarif & UJ 0)</span>`
+          : `<span class="text-slate-400">Ketik / pilih rute dari daftar Master</span>`;
+        return false;
+      }
     }
 
     function addMultiSpjRow(preset = {}) {
@@ -1570,32 +1624,35 @@
       const bulkDriver = document.getElementById("bulk-new-driver").value.trim();
 
       const tr = document.createElement("tr");
-      tr.className = preset.is_from_pdf ? "bg-emerald-50/40 hover:bg-emerald-50/80" : "hover:bg-slate-50";
+      tr.className = preset.is_from_pdf ? "bg-emerald-50/30 hover:bg-emerald-50/60" : "hover:bg-slate-50";
       tr.innerHTML = `
-        <td class="p-2">
+        <td class="p-2 align-top">
           <input type="text" value="${preset.no_spj || ""}" oninput="this.title=this.value" title="${preset.no_spj || ""}" required class="row-spj w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs bg-slate-50 font-bold text-slate-900" />
           ${preset.is_from_pdf ? `<div class="mt-1"><span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">BARU (PDF)</span> <span class="text-[10px] text-slate-400">${preset.source_info || ""}</span></div>` : ""}
         </td>
-        <td class="p-2"><input type="date" value="${preset.tgl_muat || todayIso}" required class="row-tgl w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
-        <td class="p-2"><input type="text" value="${preset.no_surat_jalan || ""}" oninput="this.title=this.value" title="${preset.no_surat_jalan || ""}" placeholder="No. DN / SJ *" required class="row-dn w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs" /></td>
-        <td class="p-2">
-          <input type="text" value="${preset.customer || ""}" list="datalist-customers" oninput="this.title=this.value; onRowCustomerChange(this)" title="${preset.customer || ""}" placeholder="Nama Rute *" required class="row-cust w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" />
+        <td class="p-2 align-top"><input type="date" value="${preset.tgl_muat || todayIso}" required class="row-tgl w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2 align-top"><input type="text" value="${preset.no_surat_jalan || ""}" oninput="this.title=this.value" title="${preset.no_surat_jalan || ""}" placeholder="No. DN / SJ *" required class="row-dn w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs" /></td>
+        <td class="p-2 align-top">
+          <input type="text" value="${preset.customer || ""}" list="datalist-customers" oninput="this.title=this.value; onRowCustomerChange(this)" onblur="onRowCustomerBlur(this)" title="${preset.customer || ""}" placeholder="Pilih Nama Rute Master *" required class="row-cust w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs font-semibold" />
+          <div class="row-route-badge mt-1 text-[10px] leading-tight"></div>
           <input type="hidden" class="row-asal" value="${preset.asal || ""}" />
           <input type="hidden" class="row-tujuan" value="${preset.tujuan || ""}" />
         </td>
-        <td class="p-2"><input type="text" value="${preset.project || ""}" title="${preset.project || ""}" readonly placeholder="Auto" class="row-proj w-full px-2.5 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs text-indigo-700 font-semibold" /></td>
-        <td class="p-2"><input type="text" value="${preset.nopol || bulkNopol}" list="datalist-nopol" oninput="this.title=this.value; onRowNopolChange(this)" placeholder="Nopol" class="row-nopol w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
-        <td class="p-2"><input type="text" value="${preset.jenis_armada || bulkArmada}" oninput="this.title=this.value" placeholder="Armada" class="row-armada w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
-        <td class="p-2"><input type="text" value="${preset.nama_driver || bulkDriver}" oninput="this.title=this.value" placeholder="Driver" class="row-driver w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
-        <td class="p-2"><input type="number" value="${preset.kilogram || ""}" oninput="this.title=this.value" placeholder="Kg" class="row-kg w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs text-right font-mono" /></td>
-        <td class="p-2 text-center"><button type="button" onclick="removeMultiSpjRow(this)" class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-1">✕</button></td>
+        <td class="p-2 align-top"><input type="text" value="${preset.project || ""}" title="${preset.project || ""}" readonly placeholder="Auto dari Rute" class="row-proj w-full px-2.5 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs text-indigo-700 font-semibold" /></td>
+        <td class="p-2 align-top"><input type="text" value="${preset.nopol || bulkNopol}" list="datalist-nopol" oninput="this.title=this.value; onRowNopolChange(this)" placeholder="Nopol" class="row-nopol w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2 align-top"><input type="text" value="${preset.jenis_armada || bulkArmada}" oninput="this.title=this.value" placeholder="Armada" class="row-armada w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2 align-top"><input type="text" value="${preset.nama_driver || bulkDriver}" oninput="this.title=this.value" placeholder="Driver" class="row-driver w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2 align-top"><input type="number" value="${preset.kilogram || ""}" oninput="this.title=this.value" placeholder="Kg" class="row-kg w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs text-right font-mono" /></td>
+        <td class="p-2 align-top text-center"><button type="button" onclick="removeMultiSpjRow(this)" class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-1.5">✕</button></td>
       `;
       tbody.appendChild(tr);
+      validateMultiRowRoute(tr, false);
       reindexMultiSpjNumbers();
     }
 
     function removeMultiSpjRow(btn) {
       btn.closest("tr").remove();
+      document.getElementById("create-route-error-box").classList.add("hidden");
       reindexMultiSpjNumbers();
     }
 
@@ -1603,21 +1660,18 @@
       document.getElementById("multi-spj-tbody").innerHTML = "";
       document.getElementById("pdf-review-panel").classList.add("hidden");
       document.getElementById("pdf-duplicate-notes").classList.add("hidden");
+      document.getElementById("create-route-error-box").classList.add("hidden");
       addMultiSpjRow();
     }
 
     function onRowCustomerChange(inputEl) {
       const tr = inputEl.closest("tr");
-      const val = inputEl.value.trim().toLowerCase();
-      const match = appState.routes.find(r => r.customer.toLowerCase() === val);
-      if (!match) return;
-      tr.querySelector(".row-proj").value = match.project || "";
-      tr.querySelector(".row-proj").title = match.project || "";
-      tr.querySelector(".row-asal").value = match.origin && match.origin !== "NONE" ? match.origin : "";
-      tr.querySelector(".row-tujuan").value = match.destination && match.destination !== "NONE TUJUAN" ? match.destination : "";
-      if (match.vehicle_type && match.vehicle_type !== "NONE ARMADA" && !tr.querySelector(".row-armada").value) {
-        tr.querySelector(".row-armada").value = match.vehicle_type;
-      }
+      validateMultiRowRoute(tr, false);
+    }
+
+    function onRowCustomerBlur(inputEl) {
+      const tr = inputEl.closest("tr");
+      validateMultiRowRoute(tr, true);
     }
 
     function onRowNopolChange(inputEl) {
@@ -1650,9 +1704,10 @@
 
     function openCreateOrderModal() {
       document.getElementById("pdf-tripnote-upload").value = "";
-      document.getElementById("pdf-parse-status").textContent = "Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, lalu review hasilnya pada tabel di bawah sebelum disimpan.";
+      document.getElementById("pdf-parse-status").textContent = "Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, atau pilih Nama Rute dari daftar validasi pada tabel di bawah.";
       document.getElementById("pdf-review-panel").classList.add("hidden");
       document.getElementById("pdf-duplicate-notes").classList.add("hidden");
+      document.getElementById("create-route-error-box").classList.add("hidden");
       document.getElementById("bulk-new-nopol").value = "";
       document.getElementById("bulk-new-armada").value = "";
       document.getElementById("bulk-new-driver").value = "";
@@ -1663,25 +1718,58 @@
 
     document.getElementById("form-create-order").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const errBox = document.getElementById("create-route-error-box");
+      errBox.classList.add("hidden");
+
       const rows = Array.from(document.querySelectorAll("#multi-spj-tbody tr"));
       if (!rows.length) {
         alert("Tambahkan minimal 1 baris order.");
         return;
       }
 
-      const ordersPayload = rows.map(tr => ({
-        no_spj: tr.querySelector(".row-spj").value.trim(),
-        tgl_muat: tr.querySelector(".row-tgl").value,
-        no_surat_jalan: tr.querySelector(".row-dn").value.trim(),
-        customer: tr.querySelector(".row-cust").value.trim(),
-        project: tr.querySelector(".row-proj").value.trim(),
-        asal: tr.querySelector(".row-asal").value.trim(),
-        tujuan: tr.querySelector(".row-tujuan").value.trim(),
-        nopol: tr.querySelector(".row-nopol").value.trim(),
-        jenis_armada: tr.querySelector(".row-armada").value.trim(),
-        nama_driver: tr.querySelector(".row-driver").value.trim(),
-        kilogram: tr.querySelector(".row-kg").value
-      }));
+      // PENGUNCI VALIDASI RUTE KETAT SEBELUM SUBMIT
+      const invalidList = [];
+      let firstInvalidInput = null;
+
+      rows.forEach((tr, idx) => {
+        const isValid = validateMultiRowRoute(tr, true);
+        if (!isValid) {
+          const sjVal = tr.querySelector(".row-dn").value.trim() || "-";
+          const custVal = tr.querySelector(".row-cust").value.trim() || "(Kosong)";
+          invalidList.push(`Baris #${idx + 1} (No. SJ: <b>${sjVal}</b>) → Nama Rute "<b>${custVal}</b>" tidak terdaftar di Master Tarif & Rute.`);
+          if (!firstInvalidInput) firstInvalidInput = tr.querySelector(".row-cust");
+        }
+      });
+
+      if (invalidList.length > 0) {
+        errBox.innerHTML = `
+          <div class="font-bold text-rose-900 mb-1">🚫 Penyimpanan Diblokir — Nama Rute Tidak Valid:</div>
+          <ul class="list-disc pl-5 space-y-0.5 mb-1.5">
+            ${invalidList.map(msg => `<li>${msg}</li>`).join("")}
+          </ul>
+          <div class="text-[11px] text-rose-700">Silakan pilih Nama Rute yang tersedia pada daftar saran agar <b>Tarif Jual</b> dan <b>Uang Jalan</b> terdeteksi otomatis.</div>
+        `;
+        errBox.classList.remove("hidden");
+        if (firstInvalidInput) firstInvalidInput.focus();
+        return;
+      }
+
+      const ordersPayload = rows.map(tr => {
+        const validMaster = findValidMasterRoute(tr.querySelector(".row-cust").value.trim());
+        return {
+          no_spj: tr.querySelector(".row-spj").value.trim(),
+          tgl_muat: tr.querySelector(".row-tgl").value,
+          no_surat_jalan: tr.querySelector(".row-dn").value.trim(),
+          customer: validMaster.customer,
+          project: validMaster.project || tr.querySelector(".row-proj").value.trim(),
+          asal: tr.querySelector(".row-asal").value.trim(),
+          tujuan: tr.querySelector(".row-tujuan").value.trim(),
+          nopol: tr.querySelector(".row-nopol").value.trim(),
+          jenis_armada: tr.querySelector(".row-armada").value.trim(),
+          nama_driver: tr.querySelector(".row-driver").value.trim(),
+          kilogram: tr.querySelector(".row-kg").value
+        };
+      });
 
       const btn = document.getElementById("btn-save-order");
       btn.disabled = true;
@@ -1700,16 +1788,37 @@
       }
     });
 
-    // --- EDIT ORDER LENGKAP ---
+    // --- EDIT ORDER LENGKAP (DENGAN VALIDASI RUTE KETAT) ---
     function autofillRouteDetails(prefix) {
-      const cust = document.getElementById(`${prefix}-customer`).value.trim().toLowerCase();
-      const match = appState.routes.find(r => r.customer.toLowerCase() === cust);
-      if (!match) return;
-      if (match.origin && match.origin !== "NONE") document.getElementById(`${prefix}-asal`).value = match.origin;
-      if (match.destination && match.destination !== "NONE TUJUAN") document.getElementById(`${prefix}-tujuan`).value = match.destination;
-      if (match.vehicle_type && match.vehicle_type !== "NONE ARMADA" && !document.getElementById(`${prefix}-armada`).value) {
-        document.getElementById(`${prefix}-armada`).value = match.vehicle_type;
+      const inputEl = document.getElementById(`${prefix}-customer`);
+      const badgeEl = document.getElementById(`${prefix}-route-validation-badge`);
+      const match = findValidMasterRoute(inputEl.value);
+
+      if (match) {
+        inputEl.classList.remove("border-rose-400", "bg-rose-50");
+        inputEl.classList.add("border-emerald-400", "bg-emerald-50/40");
+        if (match.origin && match.origin !== "NONE") document.getElementById(`${prefix}-asal`).value = match.origin;
+        if (match.destination && match.destination !== "NONE TUJUAN") document.getElementById(`${prefix}-tujuan`).value = match.destination;
+        if (match.vehicle_type && match.vehicle_type !== "NONE ARMADA" && !document.getElementById(`${prefix}-armada`).value) {
+          document.getElementById(`${prefix}-armada`).value = match.vehicle_type;
+        }
+        if (badgeEl) {
+          badgeEl.innerHTML = `<span class="text-emerald-700 font-semibold">✓ Valid (${match.project}) • Tarif: ${formatRupiah(match.base_rate)} | UJ: ${formatRupiah(match.uang_jalan)}</span>`;
+        }
+      } else {
+        inputEl.classList.remove("border-emerald-400", "bg-emerald-50/40");
+        inputEl.classList.add("border-rose-400", "bg-rose-50");
+        if (badgeEl) {
+          badgeEl.innerHTML = `<span class="text-rose-600 font-bold">⚠️ Rute tidak ada di Master Tarif & Rute!</span>`;
+        }
       }
+    }
+
+    function normalizeEditRouteInput() {
+      const inputEl = document.getElementById("edit-customer");
+      const match = findValidMasterRoute(inputEl.value);
+      if (match) inputEl.value = match.customer;
+      autofillRouteDetails("edit");
     }
 
     function autofillFleetDetails(prefix) {
@@ -1734,11 +1843,20 @@
       document.getElementById("edit-driver").value = o.nama_driver || "";
       document.getElementById("edit-sj").value = o.no_surat_jalan || "";
       document.getElementById("edit-kg").value = o.kilogram || "";
+      autofillRouteDetails("edit");
       openModal("modal-edit-order");
     }
 
     document.getElementById("form-edit-order").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const custInput = document.getElementById("edit-customer");
+      const validRoute = findValidMasterRoute(custInput.value);
+      if (!validRoute) {
+        alert(`Nama Rute "${custInput.value}" tidak ditemukan di Master Tarif & Rute. Pilih rute yang valid dari daftar agar Tarif dan UJ terdeteksi.`);
+        custInput.focus();
+        return;
+      }
+
       const btn = document.getElementById("btn-save-edit-order");
       btn.disabled = true;
       btn.textContent = "Menyimpan...";
@@ -1746,7 +1864,7 @@
       const res = await postApi("UPDATE_POD", {
         row_number: Number(document.getElementById("edit-row-number").value),
         tgl_muat: document.getElementById("edit-tgl").value,
-        customer: document.getElementById("edit-customer").value.trim(),
+        customer: validRoute.customer,
         asal: document.getElementById("edit-asal").value.trim(),
         tujuan: document.getElementById("edit-tujuan").value.trim(),
         nopol: document.getElementById("edit-nopol").value.trim(),
