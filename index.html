@@ -3,8 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TMS POD & Penagihan 2026</title>
+  <title>TMS POD & Penagihan 2026 — PT Global Service Indonesia</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #print-spj-area, #print-spj-area * { visibility: visible; }
+      #print-spj-area { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
 
@@ -14,7 +22,7 @@
       <div class="text-center mb-6">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-xl mb-3">TMS</div>
         <h1 class="text-2xl font-bold text-slate-900">TMS POD & Surat Jalan</h1>
-        <p class="text-sm text-slate-500 mt-1">Masuk untuk mengelola operasional & rekap penagihan</p>
+        <p class="text-sm text-slate-500 mt-1">Sistem Monitoring Operasional, POD & Penagihan</p>
       </div>
       <form id="login-form" class="space-y-4">
         <div>
@@ -39,7 +47,7 @@
         <div class="flex items-center gap-3">
           <span class="bg-indigo-500 text-white font-bold px-2.5 py-1 rounded-lg text-sm">TMS 2026</span>
           <div>
-            <div class="font-bold text-sm sm:text-base leading-tight">Monitoring POD & Penagihan</div>
+            <div class="font-bold text-sm sm:text-base leading-tight">Monitoring POD, SPJ & Penagihan</div>
             <div class="text-xs text-slate-400" id="header-user-info">-</div>
           </div>
         </div>
@@ -52,8 +60,11 @@
       <!-- NAV TABS -->
       <div class="bg-slate-800 border-t border-slate-700">
         <div class="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
-          <button onclick="switchMainTab('orders')" id="tab-btn-orders" class="nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-400 text-white">Monitoring POD & Order</button>
-          <button onclick="switchMainTab('billing')" id="tab-btn-billing" class="nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white">Rekap Penagihan & Invoice</button>
+          <button onclick="switchMainTab('orders')" id="tab-btn-orders" class="nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-400 text-white whitespace-nowrap">Monitoring POD & Order</button>
+          <button onclick="switchMainTab('billing')" id="tab-btn-billing" class="nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Rekap Penagihan & Invoice</button>
+          <button onclick="switchMainTab('routes')" id="tab-btn-routes" class="super-admin-only hidden nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Master Tarif & Rute</button>
+          <button onclick="switchMainTab('fleets')" id="tab-btn-fleets" class="super-admin-only hidden nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Master Armada</button>
+          <button onclick="switchMainTab('users')" id="tab-btn-users" class="super-admin-only hidden nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">Manajemen User</button>
         </div>
       </div>
     </header>
@@ -94,7 +105,7 @@
           </div>
         </div>
 
-        <!-- FILTER BAR & ADD BUTTON -->
+        <!-- FILTER BAR & ACTION BUTTONS -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2.5 flex-1">
             <input type="text" id="filter-order-search" oninput="renderOrdersTable()" placeholder="Cari SPJ, No SJ, Customer, Nopol, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-full sm:w-64" />
@@ -111,7 +122,12 @@
               <option value="CANCEL">CANCEL</option>
             </select>
           </div>
-          <button onclick="openCreateOrderModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow-sm">+ Input Order Baru</button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openBulkPodModal()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold shadow-sm">
+              Bulk Update POD (<span id="selected-order-count">0</span>)
+            </button>
+            <button onclick="openCreateOrderModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow-sm">+ Input / Scan PDF Tripnote</button>
+          </div>
         </div>
 
         <!-- ORDERS TABLE -->
@@ -120,6 +136,7 @@
             <table class="w-full text-left border-collapse text-xs sm:text-sm">
               <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600">
                 <tr>
+                  <th class="py-3 px-3 w-8"><input type="checkbox" id="check-all-orders" onchange="toggleSelectAllOrders(this.checked)" /></th>
                   <th class="py-3 px-3">No. SPJ / Tgl</th>
                   <th class="py-3 px-3">Project & Rute</th>
                   <th class="py-3 px-3">No. Surat Jalan</th>
@@ -169,7 +186,7 @@
         </div>
 
         <!-- SUB-TABS PENAGIHAN -->
-        <div class="flex gap-2 mb-4">
+        <div class="flex flex-wrap gap-2 mb-4">
           <button onclick="switchBillingSubTab('items')" id="bsub-btn-items" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-indigo-600 text-white shadow-sm">Daftar Trip OK GR (Pilih Tagihan)</button>
           <button onclick="switchBillingSubTab('invoices')" id="bsub-btn-invoices" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Rekap Per-Invoice & Faktur Pajak</button>
         </div>
@@ -253,39 +270,247 @@
           </div>
         </div>
       </section>
+
+      <!-- ==================== TAB 3: MASTER TARIF & RUTE (SUPER_ADMIN) ==================== -->
+      <section id="section-routes" class="hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
+          <input type="text" id="filter-route-search" oninput="renderRoutesTable()" placeholder="Cari Kode Customer, Origin, Tujuan, Project..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-72" />
+          <button onclick="openRouteModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold">+ Tambah Rute & Tarif</button>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600">
+                <tr>
+                  <th class="py-3 px-3">Project</th>
+                  <th class="py-3 px-3">Customer / Kode Rute</th>
+                  <th class="py-3 px-3">Asal → Tujuan</th>
+                  <th class="py-3 px-3">Armada</th>
+                  <th class="py-3 px-3 text-right">Tarif Jual</th>
+                  <th class="py-3 px-3 text-right">Uang Jalan</th>
+                  <th class="py-3 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="routes-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: MASTER ARMADA (SUPER_ADMIN) ==================== -->
+      <section id="section-fleets" class="hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
+          <input type="text" id="filter-fleet-search" oninput="renderFleetsTable()" placeholder="Cari Nopol, Jenis Armada, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-72" />
+          <button onclick="openFleetModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold">+ Tambah Armada</button>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600">
+                <tr>
+                  <th class="py-3 px-3">Nopol</th>
+                  <th class="py-3 px-3">Jenis Armada</th>
+                  <th class="py-3 px-3">Nama Driver</th>
+                  <th class="py-3 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="fleets-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: MANAJEMEN USER (SUPER_ADMIN) ==================== -->
+      <section id="section-users" class="hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex items-center justify-between">
+          <div class="text-sm font-bold text-slate-700">Daftar Akun Pengguna Sistem TMS</div>
+          <button onclick="openUserModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold">+ Tambah User</button>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-600">
+                <tr>
+                  <th class="py-3 px-3">Username</th>
+                  <th class="py-3 px-3">Nama Tampil</th>
+                  <th class="py-3 px-3">Role</th>
+                  <th class="py-3 px-3">Status</th>
+                  <th class="py-3 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
-  <!-- ==================== MODAL: PROSES / EDIT TAGIHAN (NO INVOICE & FAKTUR PAJAK) ==================== -->
-  <div id="modal-billing-batch" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl">
-      <h3 class="text-lg font-bold text-slate-900 mb-1">Update Status & Rekap Penagihan</h3>
-      <p class="text-xs text-slate-500 mb-4" id="modal-bill-subtitle">Memperbarui 0 item surat jalan terpilih</p>
-      <form id="form-billing-batch" class="space-y-3.5">
-        <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Status Penagihan *</label>
-          <select id="bill-input-status" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
-            <option value="DRAFT REKAP">DRAFT REKAP</option>
-            <option value="SUDAH DITAGIH">SUDAH DITAGIH</option>
-            <option value="LUNAS">LUNAS</option>
-            <option value="BELUM DITAGIH">BELUM DITAGIH (Kembalikan ke Belum Ditagih)</option>
-          </select>
+  <!-- ==================== MODAL: INPUT ORDER BARU + PARSER PDF TRIPNOTE / DN ==================== -->
+  <div id="modal-create-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-bold text-slate-900">Input Order / Scan PDF Tripnote & DN</h3>
+        <button onclick="closeModal('modal-create-order')" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+      </div>
+
+      <!-- PDF PARSER BOX -->
+      <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3.5 mb-4">
+        <label class="block text-xs font-bold text-indigo-900 mb-1">📄 Upload PDF Tripnote / Delivery Note (Isi Otomatis)</label>
+        <input type="file" id="pdf-tripnote-upload" accept="application/pdf" multiple onchange="handlePdfTripnoteUpload(event)" class="text-xs text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700" />
+        <div id="pdf-parse-status" class="text-[11px] text-indigo-700 mt-1.5">Pilih satu atau beberapa file PDF DN/Tripnote untuk membaca No. SJ, Tanggal, dan Rute otomatis.</div>
+      </div>
+
+      <form id="form-create-order" class="space-y-3">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">No. SPJ *</label>
+            <input type="text" id="new-spj" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono bg-slate-50" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Muat *</label>
+            <input type="date" id="new-tgl" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div class="col-span-2 sm:col-span-1">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Project</label>
+            <input type="text" id="new-project" readonly placeholder="Otomatis dari rute" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-600" />
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Invoice</label>
-          <input type="text" id="bill-input-invoice" placeholder="Contoh: INV/GSI/2026/11/001" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Customer / Kode Rute *</label>
+            <input type="text" id="new-customer" list="datalist-customers" oninput="autofillRouteDetails('new')" required placeholder="Ketik kode rute..." class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <datalist id="datalist-customers"></datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Asal (Origin)</label>
+            <input type="text" id="new-asal" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tujuan (Destination)</label>
+            <input type="text" id="new-tujuan" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Faktur Pajak</label>
-          <input type="text" id="bill-input-faktur" placeholder="Contoh: 010.008-26.12345678" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nopol</label>
+            <input type="text" id="new-nopol" list="datalist-nopol" oninput="autofillFleetDetails('new')" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <datalist id="datalist-nopol"></datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Armada</label>
+            <input type="text" id="new-armada" placeholder="CDD / Wingbox / Fuso" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Driver</label>
+            <input type="text" id="new-driver" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Tagih / Invoice</label>
-          <input type="date" id="bill-input-tgl" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+
+        <!-- MULTI SURAT JALAN LIST -->
+        <div class="border border-slate-200 rounded-xl p-3 bg-slate-50">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-700">Daftar Nomor Surat Jalan / DN</span>
+            <button type="button" onclick="addSjRow()" class="px-2.5 py-1 rounded bg-indigo-100 text-indigo-700 text-xs font-semibold hover:bg-indigo-200">+ Tambah SJ</button>
+          </div>
+          <div id="sj-rows-container" class="space-y-2"></div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
+          <button type="submit" id="btn-save-order" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">Simpan Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDIT DETAIL ORDER LENGKAP ==================== -->
+  <div id="modal-edit-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-slate-900 mb-1">Edit Detail Order / Surat Jalan</h3>
+      <p class="text-xs text-slate-500 mb-4" id="edit-order-subtitle">-</p>
+      <form id="form-edit-order" class="space-y-3">
+        <input type="hidden" id="edit-row-number" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Muat</label>
+            <input type="date" id="edit-tgl" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Customer / Kode Rute</label>
+            <input type="text" id="edit-customer" list="datalist-customers" oninput="autofillRouteDetails('edit')" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Asal</label>
+            <input type="text" id="edit-asal" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tujuan</label>
+            <input type="text" id="edit-tujuan" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nopol</label>
+            <input type="text" id="edit-nopol" list="datalist-nopol" oninput="autofillFleetDetails('edit')" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Armada</label>
+            <input type="text" id="edit-armada" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Driver</label>
+            <input type="text" id="edit-driver" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">No. Surat Jalan</label>
+            <input type="text" id="edit-sj" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Berat (Kg)</label>
+            <input type="number" id="edit-kg" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
         </div>
         <div class="flex justify-end gap-2 pt-3 border-t">
-          <button type="button" onclick="closeModal('modal-billing-batch')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
-          <button type="submit" id="btn-save-billing" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">Simpan & Buat Rekap</button>
+          <button type="button" onclick="closeModal('modal-edit-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
+          <button type="submit" id="btn-save-edit-order" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: UPDATE POD (SINGLE & BULK) ==================== -->
+  <div id="modal-pod" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-900 mb-1" id="pod-modal-title">Update Status POD / GR</h3>
+      <p class="text-xs text-slate-500 mb-4" id="pod-modal-info">-</p>
+      <form id="form-pod" class="space-y-3.5">
+        <input type="hidden" id="pod-row-number" />
+        <input type="hidden" id="pod-is-bulk" value="0" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Status GR *</label>
+          <select id="pod-status" onchange="togglePodIssueField()" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
+            <option value="BELUM KEMBALI">BELUM KEMBALI</option>
+            <option value="SJ ADA">SJ ADA</option>
+            <option value="SUMMARY ADA">SUMMARY ADA</option>
+            <option value="OPEN GR">OPEN GR</option>
+            <option value="OK GR">OK GR</option>
+          </select>
+        </div>
+        <div id="pod-issue-wrap" class="hidden">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Keterangan Kendala (OPEN GR)</label>
+          <input type="text" id="pod-issue" placeholder="Contoh: Menunggu revisi qty dari customer" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeModal('modal-pod')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
+          <button type="submit" id="btn-save-pod" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">Simpan Status</button>
         </div>
       </form>
     </div>
@@ -327,87 +552,165 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL: UPDATE STATUS POD ==================== -->
-  <div id="modal-pod" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-      <h3 class="text-lg font-bold text-slate-900 mb-1">Update Status POD / GR</h3>
-      <p class="text-xs text-slate-500 mb-4" id="pod-modal-info">-</p>
-      <form id="form-pod" class="space-y-3.5">
-        <input type="hidden" id="pod-row-number" />
+  <!-- ==================== MODAL: PROSES / EDIT TAGIHAN (NO INVOICE & FAKTUR PAJAK) ==================== -->
+  <div id="modal-billing-batch" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-900 mb-1">Update Status & Rekap Penagihan</h3>
+      <p class="text-xs text-slate-500 mb-4" id="modal-bill-subtitle">Memperbarui 0 item surat jalan terpilih</p>
+      <form id="form-billing-batch" class="space-y-3.5">
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Status GR *</label>
-          <select id="pod-status" onchange="togglePodIssueField()" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
-            <option value="BELUM KEMBALI">BELUM KEMBALI</option>
-            <option value="SJ ADA">SJ ADA</option>
-            <option value="SUMMARY ADA">SUMMARY ADA</option>
-            <option value="OPEN GR">OPEN GR</option>
-            <option value="OK GR">OK GR</option>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Status Penagihan *</label>
+          <select id="bill-input-status" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
+            <option value="DRAFT REKAP">DRAFT REKAP</option>
+            <option value="SUDAH DITAGIH">SUDAH DITAGIH</option>
+            <option value="LUNAS">LUNAS</option>
+            <option value="BELUM DITAGIH">BELUM DITAGIH (Kembalikan ke Belum Ditagih)</option>
           </select>
         </div>
-        <div id="pod-issue-wrap" class="hidden">
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Keterangan Kendala (OPEN GR)</label>
-          <input type="text" id="pod-issue" placeholder="Contoh: Menunggu revisi qty dari customer" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Invoice</label>
+          <input type="text" id="bill-input-invoice" placeholder="Contoh: INV/GSI/2026/11/001" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
         </div>
-        <div class="flex justify-end gap-2 pt-2 border-t">
-          <button type="button" onclick="closeModal('modal-pod')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
-          <button type="submit" id="btn-save-pod" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">Simpan Status</button>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Faktur Pajak</label>
+          <input type="text" id="bill-input-faktur" placeholder="Contoh: 010.008-26.12345678" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Tagih / Invoice</label>
+          <input type="date" id="bill-input-tgl" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal('modal-billing-batch')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
+          <button type="submit" id="btn-save-billing" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">Simpan & Buat Rekap</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ==================== MODAL: INPUT ORDER BARU ==================== -->
-  <div id="modal-create-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-      <h3 class="text-lg font-bold text-slate-900 mb-3">Input Order / SPJ Baru</h3>
-      <form id="form-create-order" class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">No. SPJ *</label>
-            <input type="text" id="new-spj" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono bg-slate-50" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Muat *</label>
-            <input type="date" id="new-tgl" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
-          </div>
+  <!-- ==================== MODAL: MASTER RUTE / TARIF ==================== -->
+  <div id="modal-route" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-900 mb-3">Simpan Master Tarif & Rute</h3>
+      <form id="form-route" class="space-y-3">
+        <input type="hidden" id="route-row-number" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Project</label>
+          <input type="text" id="route-project" placeholder="Karawang Assy Plan (KAP) / Sunter Assy Plan (SAP) / TAM SPLD" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">Customer / Kode Rute *</label>
-          <input type="text" id="new-customer" list="datalist-customers" required placeholder="Pilih atau ketik kode rute..." class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
-          <datalist id="datalist-customers"></datalist>
+          <input type="text" id="route-customer" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Nopol</label>
-            <input type="text" id="new-nopol" list="datalist-nopol" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
-            <datalist id="datalist-nopol"></datalist>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Asal</label>
+            <input type="text" id="route-origin" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Armada</label>
-            <input type="text" id="new-armada" placeholder="CDD / Wingbox / Fuso" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tujuan</label>
+            <input type="text" id="route-destination" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
           </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Armada</label>
+          <input type="text" id="route-armada" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">No. Surat Jalan *</label>
-            <input type="text" id="new-sj" required placeholder="No. DN / SJ" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tarif Jual (Rp)</label>
+            <input type="number" id="route-rate" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Berat (Kg)</label>
-            <input type="number" id="new-kg" placeholder="Opsional" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Uang Jalan (Rp)</label>
+            <input type="number" id="route-uj" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-3 border-t">
-          <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
-          <button type="submit" id="btn-save-order" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">Simpan Order</button>
+          <button type="button" onclick="closeModal('modal-route')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold">Simpan Rute</button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- ==================== MODAL: MASTER ARMADA ==================== -->
+  <div id="modal-fleet" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-900 mb-3">Simpan Master Armada</h3>
+      <form id="form-fleet" class="space-y-3">
+        <input type="hidden" id="fleet-row-number" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Polisi *</label>
+          <input type="text" id="fleet-nopol" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Armada</label>
+          <input type="text" id="fleet-type" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Driver</label>
+          <input type="text" id="fleet-driver" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal('modal-fleet')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold">Simpan Armada</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: MANAJEMEN USER ==================== -->
+  <div id="modal-user" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-900 mb-3">Simpan Akun Pengguna</h3>
+      <form id="form-user" class="space-y-3">
+        <input type="hidden" id="user-row-number" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Username *</label>
+          <input type="text" id="user-username" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
+          <input type="text" id="user-password" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Tampil *</label>
+          <input type="text" id="user-display" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Role</label>
+            <select id="user-role" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white">
+              <option value="ADMIN_POD">ADMIN_POD</option>
+              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+            <select id="user-status" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white">
+              <option value="AKTIF">AKTIF</option>
+              <option value="NONAKTIF">NONAKTIF</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal('modal-user')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold">Simpan User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- AREA CETAK SPJ (TERSEMBUNYI SAAT NORMAL, MUNCUL SAAT PRINT) -->
+  <div id="print-spj-area" class="hidden p-8 bg-white text-black"></div>
 
   <script>
     // GANTI DENGAN URL WEB APP (/exec) GOOGLE APPS SCRIPT ANDA
     const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
+
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
 
     let currentUser = null;
     let currentCreds = { username: "", password: "" };
@@ -417,10 +720,12 @@
       invoice_summaries: [],
       routes: [],
       fleets: [],
+      users: [],
       next_spj: "SPJ20260001"
     };
     let currentOrderPage = 1;
     const ORDERS_PER_PAGE = 50;
+    let selectedOrderRows = new Set();
     let selectedBillKeys = new Set();
     let activeEditItems = [];
 
@@ -487,6 +792,11 @@
         appState = json;
         document.getElementById("header-user-info").textContent = `${currentUser.display_name} (${currentUser.role})`;
 
+        // Tampilkan tab khusus SUPER_ADMIN
+        document.querySelectorAll(".super-admin-only").forEach(el => {
+          el.classList.toggle("hidden", currentUser.role !== "SUPER_ADMIN");
+        });
+
         // KPI Orders
         document.getElementById("kpi-total").textContent = json.summary.total;
         document.getElementById("kpi-belum").textContent = json.summary.belum_kembali;
@@ -508,6 +818,11 @@
         renderOrdersTable();
         renderBillingItemsTable();
         renderInvoiceSummaryTable();
+        if (currentUser.role === "SUPER_ADMIN") {
+          renderRoutesTable();
+          renderFleetsTable();
+          renderUsersTable();
+        }
         return true;
       } catch (err) {
         console.error(err);
@@ -546,15 +861,16 @@
 
     // --- TABS ---
     function switchMainTab(tab) {
-      document.getElementById("section-orders").classList.toggle("hidden", tab !== "orders");
-      document.getElementById("section-billing").classList.toggle("hidden", tab !== "billing");
-
-      document.getElementById("tab-btn-orders").className = tab === "orders"
-        ? "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-400 text-white"
-        : "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white";
-      document.getElementById("tab-btn-billing").className = tab === "billing"
-        ? "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-400 text-white"
-        : "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white";
+      ["orders", "billing", "routes", "fleets", "users"].forEach(t => {
+        const sec = document.getElementById(`section-${t}`);
+        if (sec) sec.classList.toggle("hidden", t !== tab);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) {
+          btn.className = (t === tab ? "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-400 text-white whitespace-nowrap"
+            : "nav-tab px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap")
+            + (["routes", "fleets", "users"].includes(t) && currentUser.role !== "SUPER_ADMIN" ? " hidden" : "");
+        }
+      });
     }
 
     function switchBillingSubTab(sub) {
@@ -609,8 +925,10 @@
       document.getElementById("orders-tbody").innerHTML = pageItems.map(o => {
         const badge = badgeMap[o.status_gr] || "bg-slate-100 text-slate-700";
         const lockedForAdmin = o.status_gr === "OK GR" && currentUser.role !== "SUPER_ADMIN";
+        const checked = selectedOrderRows.has(o.row_number) ? "checked" : "";
         return `
           <tr class="hover:bg-slate-50">
+            <td class="py-2.5 px-3"><input type="checkbox" ${checked} ${lockedForAdmin ? "disabled" : ""} onchange="toggleOrderCheck(${o.row_number}, this.checked)" /></td>
             <td class="py-2.5 px-3">
               <div class="font-bold text-slate-900">${o.no_spj}</div>
               <div class="text-[11px] text-slate-500">${o.tgl_muat}</div>
@@ -618,23 +936,30 @@
             <td class="py-2.5 px-3">
               <span class="inline-block px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-semibold mb-0.5">${o.project}</span>
               <div class="font-semibold text-slate-800">${o.customer}</div>
+              <div class="text-[11px] text-slate-500">${o.asal || "-"} → ${o.tujuan || "-"}</div>
             </td>
-            <td class="py-2.5 px-3 font-mono text-xs">${o.no_surat_jalan}</td>
+            <td class="py-2.5 px-3">
+              <div class="font-mono text-xs">${o.no_surat_jalan}</div>
+              ${o.kilogram ? `<div class="text-[11px] text-indigo-600 font-semibold">${Number(o.kilogram).toLocaleString("id-ID")} Kg</div>` : ""}
+            </td>
             <td class="py-2.5 px-3">
               <div class="font-medium">${o.nopol || "-"}</div>
-              <div class="text-[11px] text-slate-500">${o.jenis_armada || "-"}</div>
+              <div class="text-[11px] text-slate-500">${o.jenis_armada || "-"} ${o.nama_driver ? "• " + o.nama_driver : ""}</div>
             </td>
             <td class="py-2.5 px-3">
               <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${badge}">${o.status_gr}</span>
               ${o.keterangan_issue ? `<div class="text-[11px] text-slate-500 mt-1">${o.keterangan_issue}</div>` : ""}
             </td>
             <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
-              ${!lockedForAdmin ? `<button onclick="openPodModal(${o.row_number})" class="px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-xs font-semibold">POD</button>` : ""}
-              ${!lockedForAdmin ? `<button onclick="openCancelModal(${o.row_number})" class="px-2.5 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-semibold">Cancel / Hapus</button>` : `<span class="text-[11px] text-slate-400 italic">Terkunci</span>`}
+              <button onclick="printSpj('${o.no_spj}')" class="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 text-xs font-semibold">SPJ</button>
+              ${!lockedForAdmin ? `<button onclick="openEditOrderModal(${o.row_number})" class="px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-xs font-semibold">Edit</button>` : ""}
+              ${!lockedForAdmin ? `<button onclick="openPodModal(${o.row_number})" class="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-xs font-semibold">POD</button>` : ""}
+              ${!lockedForAdmin ? `<button onclick="openCancelModal(${o.row_number})" class="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-semibold">Cancel / Hapus</button>` : `<span class="text-[11px] text-slate-400 italic">Terkunci</span>`}
             </td>
           </tr>
         `;
       }).join("");
+      document.getElementById("selected-order-count").textContent = selectedOrderRows.size;
     }
 
     function changeOrderPage(delta) {
@@ -642,14 +967,246 @@
       renderOrdersTable();
     }
 
-    // --- POD & CANCEL HANDLERS ---
+    function toggleOrderCheck(rowNum, checked) {
+      if (checked) selectedOrderRows.add(rowNum);
+      else selectedOrderRows.delete(rowNum);
+      document.getElementById("selected-order-count").textContent = selectedOrderRows.size;
+    }
+
+    function toggleSelectAllOrders(checked) {
+      const filtered = getFilteredOrders();
+      const start = (currentOrderPage - 1) * ORDERS_PER_PAGE;
+      filtered.slice(start, start + ORDERS_PER_PAGE).forEach(o => {
+        const locked = o.status_gr === "OK GR" && currentUser.role !== "SUPER_ADMIN";
+        if (locked) return;
+        if (checked) selectedOrderRows.add(o.row_number);
+        else selectedOrderRows.delete(o.row_number);
+      });
+      renderOrdersTable();
+    }
+
+    // --- PDF TRIPNOTE / DELIVERY NOTE PARSER ---
+    async function handlePdfTripnoteUpload(event) {
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
+      const statusEl = document.getElementById("pdf-parse-status");
+      statusEl.textContent = `Membaca ${files.length} file PDF...`;
+
+      let extractedSjs = [];
+      let detectedDate = "";
+      let detectedRoute = "";
+
+      for (const file of files) {
+        try {
+          const buf = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+          let fullText = "";
+          for (let p = 1; p <= pdf.numPages; p++) {
+            const page = await pdf.getPage(p);
+            const content = await page.getTextContent();
+            fullText += " " + content.items.map(it => it.str).join(" ");
+          }
+
+          // Cari nomor DN / SJ / SMO
+          const sjMatches = fullText.match(/\b(?:DN|SO|SMO)[A-Z0-9\-]{6,22}\b/gi) || [];
+          sjMatches.forEach(m => {
+            const clean = m.toUpperCase();
+            if (!extractedSjs.some(x => x.sj_no === clean)) {
+              extractedSjs.push({ sj_no: clean, kilogram: "" });
+            }
+          });
+
+          // Cari tanggal YYYY-MM-DD atau DD/MM/YYYY atau DD.MM.YYYY
+          if (!detectedDate) {
+            const isoMatch = fullText.match(/\b(202\d-\d{2}-\d{2})\b/);
+            const dmyMatch = fullText.match(/\b(\d{2})[\/\.\-](\d{2})[\/\.\-](202\d)\b/);
+            if (isoMatch) detectedDate = isoMatch[1];
+            else if (dmyMatch) detectedDate = `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+          }
+
+          // Cocokkan kode rute yang ada di Master_Tarif
+          if (!detectedRoute) {
+            const upperText = fullText.toUpperCase();
+            const foundRoute = appState.routes.find(r => r.customer.length >= 4 && upperText.includes(r.customer.toUpperCase()));
+            if (foundRoute) detectedRoute = foundRoute.customer;
+          }
+        } catch (err) {
+          console.error("PDF parse error:", err);
+        }
+      }
+
+      if (detectedDate) document.getElementById("new-tgl").value = detectedDate;
+      if (detectedRoute) {
+        document.getElementById("new-customer").value = detectedRoute;
+        autofillRouteDetails("new");
+      }
+      if (extractedSjs.length > 0) {
+        document.getElementById("sj-rows-container").innerHTML = "";
+        extractedSjs.forEach(s => addSjRow(s.sj_no, s.kilogram));
+      }
+
+      statusEl.textContent = `Selesai: ${extractedSjs.length} No. SJ terdeteksi${detectedRoute ? ` • Rute: ${detectedRoute}` : ""}.`;
+    }
+
+    function autofillRouteDetails(prefix) {
+      const cust = document.getElementById(`${prefix}-customer`).value.trim().toLowerCase();
+      const match = appState.routes.find(r => r.customer.toLowerCase() === cust);
+      if (!match) return;
+      if (document.getElementById(`${prefix}-project`)) document.getElementById(`${prefix}-project`).value = match.project || "";
+      if (match.origin && match.origin !== "NONE") document.getElementById(`${prefix}-asal`).value = match.origin;
+      if (match.destination && match.destination !== "NONE TUJUAN") document.getElementById(`${prefix}-tujuan`).value = match.destination;
+      if (match.vehicle_type && match.vehicle_type !== "NONE ARMADA" && !document.getElementById(`${prefix}-armada`).value) {
+        document.getElementById(`${prefix}-armada`).value = match.vehicle_type;
+      }
+    }
+
+    function autofillFleetDetails(prefix) {
+      const nopol = document.getElementById(`${prefix}-nopol`).value.trim().toLowerCase();
+      const match = appState.fleets.find(f => f.nopol.toLowerCase() === nopol);
+      if (!match) return;
+      if (match.vehicle_type) document.getElementById(`${prefix}-armada`).value = match.vehicle_type;
+      if (match.driver_name) document.getElementById(`${prefix}-driver`).value = match.driver_name;
+    }
+
+    function addSjRow(sjNo = "", kg = "") {
+      const container = document.getElementById("sj-rows-container");
+      const div = document.createElement("div");
+      div.className = "flex gap-2 items-center sj-row-item";
+      div.innerHTML = `
+        <input type="text" placeholder="No. Surat Jalan / DN *" value="${sjNo}" required class="sj-no-input flex-1 px-2.5 py-1.5 rounded border border-slate-300 text-xs font-mono bg-white" />
+        <input type="number" placeholder="Kg" value="${kg}" class="sj-kg-input w-24 px-2.5 py-1.5 rounded border border-slate-300 text-xs bg-white" />
+        <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 px-1.5 font-bold">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function openCreateOrderModal() {
+      document.getElementById("new-spj").value = appState.next_spj || "SPJ20260001";
+      document.getElementById("new-tgl").value = new Date().toISOString().split("T")[0];
+      document.getElementById("new-project").value = "";
+      document.getElementById("new-customer").value = "";
+      document.getElementById("new-asal").value = "";
+      document.getElementById("new-tujuan").value = "";
+      document.getElementById("new-nopol").value = "";
+      document.getElementById("new-armada").value = "";
+      document.getElementById("new-driver").value = "";
+      document.getElementById("pdf-tripnote-upload").value = "";
+      document.getElementById("pdf-parse-status").textContent = "Pilih satu atau beberapa file PDF DN/Tripnote untuk membaca No. SJ, Tanggal, dan Rute otomatis.";
+      document.getElementById("sj-rows-container").innerHTML = "";
+      addSjRow();
+      openModal("modal-create-order");
+    }
+
+    document.getElementById("form-create-order").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const sjRows = Array.from(document.querySelectorAll(".sj-row-item")).map(row => ({
+        sj_no: row.querySelector(".sj-no-input").value.trim(),
+        kilogram: row.querySelector(".sj-kg-input").value
+      })).filter(x => x.sj_no);
+
+      if (sjRows.length === 0) {
+        alert("Minimal isi satu Nomor Surat Jalan.");
+        return;
+      }
+
+      const btn = document.getElementById("btn-save-order");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      const res = await postApi("CREATE_ORDER", {
+        no_spj: document.getElementById("new-spj").value.trim(),
+        tgl_muat: document.getElementById("new-tgl").value,
+        project: document.getElementById("new-project").value.trim(),
+        customer: document.getElementById("new-customer").value.trim(),
+        asal: document.getElementById("new-asal").value.trim(),
+        tujuan: document.getElementById("new-tujuan").value.trim(),
+        nopol: document.getElementById("new-nopol").value.trim(),
+        jenis_armada: document.getElementById("new-armada").value.trim(),
+        nama_driver: document.getElementById("new-driver").value.trim(),
+        surat_jalan_list: sjRows
+      });
+
+      btn.disabled = false;
+      btn.textContent = "Simpan Order";
+      if (res.status === "success") {
+        closeModal("modal-create-order");
+        await loadDashboardData();
+      } else {
+        alert(res.message);
+      }
+    });
+
+    // --- EDIT ORDER LENGKAP ---
+    function openEditOrderModal(rowNum) {
+      const o = appState.orders.find(x => x.row_number === rowNum);
+      if (!o) return;
+      document.getElementById("edit-row-number").value = o.row_number;
+      document.getElementById("edit-order-subtitle").textContent = `${o.no_spj} • Project: ${o.project}`;
+      document.getElementById("edit-tgl").value = o.tgl_iso || "";
+      document.getElementById("edit-customer").value = o.customer || "";
+      document.getElementById("edit-asal").value = o.asal || "";
+      document.getElementById("edit-tujuan").value = o.tujuan || "";
+      document.getElementById("edit-nopol").value = o.nopol || "";
+      document.getElementById("edit-armada").value = o.jenis_armada || "";
+      document.getElementById("edit-driver").value = o.nama_driver || "";
+      document.getElementById("edit-sj").value = o.no_surat_jalan || "";
+      document.getElementById("edit-kg").value = o.kilogram || "";
+      openModal("modal-edit-order");
+    }
+
+    document.getElementById("form-edit-order").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btn-save-edit-order");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      const res = await postApi("UPDATE_POD", {
+        row_number: Number(document.getElementById("edit-row-number").value),
+        tgl_muat: document.getElementById("edit-tgl").value,
+        customer: document.getElementById("edit-customer").value.trim(),
+        asal: document.getElementById("edit-asal").value.trim(),
+        tujuan: document.getElementById("edit-tujuan").value.trim(),
+        nopol: document.getElementById("edit-nopol").value.trim(),
+        jenis_armada: document.getElementById("edit-armada").value.trim(),
+        nama_driver: document.getElementById("edit-driver").value.trim(),
+        no_surat_jalan: document.getElementById("edit-sj").value.trim(),
+        kilogram: document.getElementById("edit-kg").value
+      });
+
+      btn.disabled = false;
+      btn.textContent = "Simpan Perubahan";
+      if (res.status === "success") {
+        closeModal("modal-edit-order");
+        await loadDashboardData();
+      } else {
+        alert(res.message);
+      }
+    });
+
+    // --- POD SINGLE & BULK ---
     function openPodModal(rowNum) {
       const o = appState.orders.find(x => x.row_number === rowNum);
       if (!o) return;
+      document.getElementById("pod-is-bulk").value = "0";
+      document.getElementById("pod-modal-title").textContent = "Update Status POD / GR";
       document.getElementById("pod-row-number").value = o.row_number;
       document.getElementById("pod-modal-info").textContent = `${o.no_spj} | SJ: ${o.no_surat_jalan} (${o.customer})`;
       document.getElementById("pod-status").value = o.status_gr === "CANCEL" ? "BELUM KEMBALI" : o.status_gr;
       document.getElementById("pod-issue").value = o.keterangan_issue || "";
+      togglePodIssueField();
+      openModal("modal-pod");
+    }
+
+    function openBulkPodModal() {
+      if (selectedOrderRows.size === 0) {
+        alert("Centang minimal satu baris order terlebih dahulu.");
+        return;
+      }
+      document.getElementById("pod-is-bulk").value = "1";
+      document.getElementById("pod-modal-title").textContent = "Bulk Update Status POD / GR";
+      document.getElementById("pod-modal-info").textContent = `Memperbarui ${selectedOrderRows.size} baris terpilih sekaligus`;
+      document.getElementById("pod-status").value = "OK GR";
+      document.getElementById("pod-issue").value = "";
       togglePodIssueField();
       openModal("modal-pod");
     }
@@ -665,15 +1222,23 @@
       btn.disabled = true;
       btn.textContent = "Menyimpan...";
 
-      const res = await postApi("UPDATE_POD", {
-        row_number: Number(document.getElementById("pod-row-number").value),
-        status_gr: document.getElementById("pod-status").value,
-        keterangan_issue: document.getElementById("pod-issue").value.trim()
-      });
+      const isBulk = document.getElementById("pod-is-bulk").value === "1";
+      const res = isBulk
+        ? await postApi("BULK_UPDATE_POD", {
+            row_numbers: Array.from(selectedOrderRows),
+            status_gr: document.getElementById("pod-status").value,
+            keterangan_issue: document.getElementById("pod-issue").value.trim()
+          })
+        : await postApi("UPDATE_POD", {
+            row_number: Number(document.getElementById("pod-row-number").value),
+            status_gr: document.getElementById("pod-status").value,
+            keterangan_issue: document.getElementById("pod-issue").value.trim()
+          });
 
       btn.disabled = false;
       btn.textContent = "Simpan Status";
       if (res.status === "success") {
+        if (isBulk) selectedOrderRows.clear();
         closeModal("modal-pod");
         await loadDashboardData();
       } else {
@@ -681,6 +1246,36 @@
       }
     });
 
+    // --- PRINT SPJ ---
+    function printSpj(noSpj) {
+      const group = appState.orders.filter(o => o.no_spj === noSpj);
+      if (!group.length) return;
+      const first = group[0];
+      const printEl = document.getElementById("print-spj-area");
+      printEl.innerHTML = `
+        <div style="font-family: Arial, sans-serif; max-width: 750px; margin: auto;">
+          <h2 style="margin:0;">SURAT PERINTAH JALAN (SPJ)</h2>
+          <p style="margin:4px 0 16px; color:#555;">PT Global Service Indonesia — Operasional Logistik</p>
+          <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:13px;">
+            <tr><td><b>No. SPJ:</b> ${first.no_spj}</td><td><b>Tanggal Muat:</b> ${first.tgl_muat}</td></tr>
+            <tr><td><b>Project:</b> ${first.project}</td><td><b>Customer / Rute:</b> ${first.customer}</td></tr>
+            <tr><td><b>Nopol / Armada:</b> ${first.nopol || "-"} (${first.jenis_armada || "-"})</td><td><b>Driver:</b> ${first.nama_driver || "-"}</td></tr>
+            <tr><td><b>Asal → Tujuan:</b> ${first.asal || "-"} → ${first.tujuan || "-"}</td><td><b>Uang Jalan:</b> ${formatRupiah(first.uang_jalan)}</td></tr>
+          </table>
+          <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead><tr style="background:#f1f5f9;"><th>No</th><th>No. Surat Jalan / DN</th><th>Berat (Kg)</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              ${group.map((g, i) => `<tr><td align="center">${i + 1}</td><td>${g.no_surat_jalan}</td><td align="right">${g.kilogram || "-"}</td><td>${g.keterangan_issue || ""}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+      printEl.classList.remove("hidden");
+      window.print();
+      printEl.classList.add("hidden");
+    }
+
+    // --- CANCEL / HAPUS ORDER ---
     function openCancelModal(rowNum) {
       const o = appState.orders.find(x => x.row_number === rowNum);
       if (!o) return;
@@ -713,47 +1308,7 @@
       }
     });
 
-    // --- CREATE ORDER ---
-    function openCreateOrderModal() {
-      document.getElementById("new-spj").value = appState.next_spj || "SPJ20260001";
-      document.getElementById("new-tgl").value = new Date().toISOString().split("T")[0];
-      document.getElementById("new-customer").value = "";
-      document.getElementById("new-nopol").value = "";
-      document.getElementById("new-armada").value = "";
-      document.getElementById("new-sj").value = "";
-      document.getElementById("new-kg").value = "";
-      openModal("modal-create-order");
-    }
-
-    document.getElementById("form-create-order").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("btn-save-order");
-      btn.disabled = true;
-      btn.textContent = "Menyimpan...";
-
-      const res = await postApi("CREATE_ORDER", {
-        no_spj: document.getElementById("new-spj").value.trim(),
-        tgl_muat: document.getElementById("new-tgl").value,
-        customer: document.getElementById("new-customer").value.trim(),
-        nopol: document.getElementById("new-nopol").value.trim(),
-        jenis_armada: document.getElementById("new-armada").value.trim(),
-        surat_jalan_list: [{
-          sj_no: document.getElementById("new-sj").value.trim(),
-          kilogram: document.getElementById("new-kg").value
-        }]
-      });
-
-      btn.disabled = false;
-      btn.textContent = "Simpan Order";
-      if (res.status === "success") {
-        closeModal("modal-create-order");
-        await loadDashboardData();
-      } else {
-        alert(res.message);
-      }
-    });
-
-    // --- BILLING & INVOICE SUMMARY ---
+    // --- BILLING & INVOICE SUMMARY (NO. FAKTUR PAJAK) ---
     function getFilteredBillings() {
       const q = document.getElementById("filter-bill-search").value.toLowerCase().trim();
       const proj = document.getElementById("filter-bill-project").value;
@@ -886,7 +1441,6 @@
       }
     });
 
-    // --- RENDER REKAP PER-INVOICE ---
     function renderInvoiceSummaryTable() {
       const q = document.getElementById("filter-inv-search").value.toLowerCase().trim();
       const st = document.getElementById("filter-inv-status").value;
@@ -966,6 +1520,123 @@
       link.download = `Rekap_Tagihan_${safeName}.csv`;
       link.click();
     }
+
+    // --- MASTER TARIF, ARMADA & USER (SUPER_ADMIN) ---
+    function renderRoutesTable() {
+      const q = document.getElementById("filter-route-search").value.toLowerCase().trim();
+      const rows = appState.routes.filter(r => !q || `${r.customer} ${r.origin} ${r.destination} ${r.project}`.toLowerCase().includes(q));
+      document.getElementById("routes-tbody").innerHTML = rows.map(r => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2.5 px-3 text-xs font-semibold text-indigo-700">${r.project}</td>
+          <td class="py-2.5 px-3 font-bold">${r.customer}</td>
+          <td class="py-2.5 px-3 text-xs">${r.origin} → ${r.destination}</td>
+          <td class="py-2.5 px-3 text-xs">${r.vehicle_type}</td>
+          <td class="py-2.5 px-3 text-right font-semibold">${formatRupiah(r.base_rate)}</td>
+          <td class="py-2.5 px-3 text-right">${formatRupiah(r.uang_jalan)}</td>
+          <td class="py-2.5 px-3 text-right"><button onclick="openRouteModal(${r.row_number})" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Edit</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function openRouteModal(rowNum = 0) {
+      const r = appState.routes.find(x => x.row_number === rowNum);
+      document.getElementById("route-row-number").value = r ? r.row_number : 0;
+      document.getElementById("route-project").value = r ? r.project : "Karawang Assy Plan (KAP)";
+      document.getElementById("route-customer").value = r ? r.customer : "";
+      document.getElementById("route-origin").value = r ? r.origin : "NONE";
+      document.getElementById("route-destination").value = r ? r.destination : "NONE TUJUAN";
+      document.getElementById("route-armada").value = r ? r.vehicle_type : "NONE ARMADA";
+      document.getElementById("route-rate").value = r ? r.base_rate : 0;
+      document.getElementById("route-uj").value = r ? r.uang_jalan : 0;
+      openModal("modal-route");
+    }
+
+    document.getElementById("form-route").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await postApi("SAVE_MASTER_ROUTE", {
+        row_number: Number(document.getElementById("route-row-number").value),
+        project: document.getElementById("route-project").value.trim(),
+        customer: document.getElementById("route-customer").value.trim(),
+        origin: document.getElementById("route-origin").value.trim(),
+        destination: document.getElementById("route-destination").value.trim(),
+        vehicle_type: document.getElementById("route-armada").value.trim(),
+        base_rate: Number(document.getElementById("route-rate").value),
+        uang_jalan: Number(document.getElementById("route-uj").value)
+      });
+      if (res.status === "success") { closeModal("modal-route"); await loadDashboardData(); }
+      else alert(res.message);
+    });
+
+    function renderFleetsTable() {
+      const q = document.getElementById("filter-fleet-search").value.toLowerCase().trim();
+      const rows = appState.fleets.filter(f => !q || `${f.nopol} ${f.vehicle_type} ${f.driver_name}`.toLowerCase().includes(q));
+      document.getElementById("fleets-tbody").innerHTML = rows.map(f => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2.5 px-3 font-bold">${f.nopol}</td>
+          <td class="py-2.5 px-3">${f.vehicle_type || "-"}</td>
+          <td class="py-2.5 px-3">${f.driver_name || "-"}</td>
+          <td class="py-2.5 px-3 text-right"><button onclick="openFleetModal(${f.row_number})" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Edit</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function openFleetModal(rowNum = 0) {
+      const f = appState.fleets.find(x => x.row_number === rowNum);
+      document.getElementById("fleet-row-number").value = f ? f.row_number : 0;
+      document.getElementById("fleet-nopol").value = f ? f.nopol : "";
+      document.getElementById("fleet-type").value = f ? f.vehicle_type : "";
+      document.getElementById("fleet-driver").value = f ? f.driver_name : "";
+      openModal("modal-fleet");
+    }
+
+    document.getElementById("form-fleet").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await postApi("SAVE_MASTER_FLEET", {
+        row_number: Number(document.getElementById("fleet-row-number").value),
+        nopol: document.getElementById("fleet-nopol").value.trim(),
+        vehicle_type: document.getElementById("fleet-type").value.trim(),
+        driver_name: document.getElementById("fleet-driver").value.trim()
+      });
+      if (res.status === "success") { closeModal("modal-fleet"); await loadDashboardData(); }
+      else alert(res.message);
+    });
+
+    function renderUsersTable() {
+      document.getElementById("users-tbody").innerHTML = (appState.users || []).map(u => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2.5 px-3 font-bold">${u.username}</td>
+          <td class="py-2.5 px-3">${u.display_name}</td>
+          <td class="py-2.5 px-3 text-xs font-semibold">${u.role}</td>
+          <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${u.status === "AKTIF" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}">${u.status}</span></td>
+          <td class="py-2.5 px-3 text-right"><button onclick="openUserModal(${u.row_number})" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Edit</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function openUserModal(rowNum = 0) {
+      const u = (appState.users || []).find(x => x.row_number === rowNum);
+      document.getElementById("user-row-number").value = u ? u.row_number : 0;
+      document.getElementById("user-username").value = u ? u.username : "";
+      document.getElementById("user-password").value = u ? u.password : "";
+      document.getElementById("user-display").value = u ? u.display_name : "";
+      document.getElementById("user-role").value = u ? u.role : "ADMIN_POD";
+      document.getElementById("user-status").value = u ? u.status : "AKTIF";
+      openModal("modal-user");
+    }
+
+    document.getElementById("form-user").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await postApi("SAVE_USER", {
+        row_number: Number(document.getElementById("user-row-number").value),
+        username: document.getElementById("user-username").value.trim(),
+        password: document.getElementById("user-password").value.trim(),
+        display_name: document.getElementById("user-display").value.trim(),
+        role: document.getElementById("user-role").value,
+        status: document.getElementById("user-status").value
+      });
+      if (res.status === "success") { closeModal("modal-user"); await loadDashboardData(); }
+      else alert(res.message);
+    });
   </script>
 </body>
 </html>
