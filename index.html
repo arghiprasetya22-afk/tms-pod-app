@@ -260,6 +260,7 @@
                     <th class="py-3 px-3">Status</th>
                     <th class="py-3 px-3">Project & Customer</th>
                     <th class="py-3 px-3 text-center">Jml Trip (SJ)</th>
+                    <th class="py-3 px-3 text-right">Tonase (Kg)</th>
                     <th class="py-3 px-3 text-right">Total Nominal (Rp)</th>
                     <th class="py-3 px-3 text-right">Aksi Rekap</th>
                   </tr>
@@ -545,7 +546,7 @@
             <input type="radio" name="cancel_action_type" value="CANCEL" checked class="mt-0.5" />
             <div>
               <div class="text-xs font-bold text-slate-800">Tandai CANCEL (Trip Batal Berangkat)</div>
-              <div class="text-[11px] text-slate-500">Baris tetap tersimpan dengan status CANCEL & tercatat di Log.</div>
+              <div class="text-[11px] text-slate-500">Baris tetap tersimpan dengan status CANCEL & tercatat di Log_Hapus_Order.</div>
             </div>
           </label>
           <label id="option-delete-permanent" class="flex items-start gap-2 p-2.5 rounded-lg border border-rose-200 bg-rose-50/40 cursor-pointer hover:bg-rose-50">
@@ -1636,7 +1637,7 @@
       };
 
       document.getElementById("invoice-summary-tbody").innerHTML = list.length === 0
-        ? `<tr><td colspan="8" class="py-6 text-center text-slate-400 text-xs">Belum ada tagihan berstatus Draft Rekap, Sudah Ditagih, atau Lunas.</td></tr>`
+        ? `<tr><td colspan="9" class="py-6 text-center text-slate-400 text-xs">Belum ada tagihan berstatus Draft Rekap, Sudah Ditagih, atau Lunas.</td></tr>`
         : list.map((g, idx) => `
           <tr class="hover:bg-slate-50">
             <td class="py-3 px-3 font-bold text-slate-900">${g.no_invoice}</td>
@@ -1648,6 +1649,7 @@
               <div class="text-[11px] text-slate-500 truncate max-w-xs">${g.daftar_customer || "-"}</div>
             </td>
             <td class="py-3 px-3 text-center font-bold">${g.trip_count}</td>
+            <td class="py-3 px-3 text-right text-xs font-semibold text-slate-700">${(Number(g.total_tonase) || 0).toLocaleString("id-ID")} Kg</td>
             <td class="py-3 px-3 text-right font-bold text-slate-900">${formatRupiah(g.total_nominal)}</td>
             <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
               <button onclick="editInvoiceGroup(${idx})" class="px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-semibold">Edit Invoice</button>
