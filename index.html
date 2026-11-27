@@ -52,8 +52,10 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="loadDashboardData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium border border-slate-700">↻ Refresh</button>
-          <button onclick="logout()" class="px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-600 text-xs font-medium">Keluar</button>
+          <button onclick="resetFilterAndRefresh()" id="btn-top-reset-refresh" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-sm transition">
+            ↻ Reset Filter & Refresh Data
+          </button>
+          <button onclick="logout()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium border border-slate-700">Keluar</button>
         </div>
       </div>
 
@@ -108,11 +110,11 @@
         <!-- FILTER BAR & ACTION BUTTONS -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2.5 flex-1">
-            <input type="text" id="filter-order-search" oninput="renderOrdersTable()" placeholder="Cari SPJ, No SJ, Customer, Nopol, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-full sm:w-64" />
-            <select id="filter-order-project" onchange="renderOrdersTable()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white">
+            <input type="text" id="filter-order-search" oninput="currentOrderPage=1; renderOrdersTable()" placeholder="Cari SPJ, No SJ, Customer, Nopol, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-full sm:w-64" />
+            <select id="filter-order-project" onchange="currentOrderPage=1; renderOrdersTable()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white">
               <option value="">Semua Project</option>
             </select>
-            <select id="filter-order-status" onchange="renderOrdersTable()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white">
+            <select id="filter-order-status" onchange="currentOrderPage=1; renderOrdersTable()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white">
               <option value="">Semua Status GR</option>
               <option value="BELUM KEMBALI">BELUM KEMBALI</option>
               <option value="SJ ADA">SJ ADA</option>
@@ -121,6 +123,9 @@
               <option value="OK GR">OK GR</option>
               <option value="CANCEL">CANCEL</option>
             </select>
+            <button type="button" onclick="resetFilterAndRefresh()" class="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+              ↻ Reset Filter & Refresh
+            </button>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button onclick="openBulkPodModal()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold shadow-sm">
@@ -206,6 +211,9 @@
                 <option value="SUDAH DITAGIH">SUDAH DITAGIH</option>
                 <option value="LUNAS">LUNAS</option>
               </select>
+              <button type="button" onclick="resetFilterAndRefresh()" class="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+                ↻ Reset Filter & Refresh
+              </button>
             </div>
             <button onclick="openBillingBatchModal()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold shadow-sm">
               Proses / Edit Tagihan Terpilih (<span id="selected-bill-count">0</span>)
@@ -245,6 +253,9 @@
                 <option value="SUDAH DITAGIH">SUDAH DITAGIH</option>
                 <option value="LUNAS">LUNAS</option>
               </select>
+              <button type="button" onclick="resetFilterAndRefresh()" class="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+                ↻ Reset Filter & Refresh
+              </button>
             </div>
             <div class="text-xs text-slate-500">Otomatis sinkron dengan tab <b>Ringkasan_Invoice</b> di Google Sheets</div>
           </div>
@@ -275,7 +286,12 @@
       <!-- ==================== TAB 3: MASTER TARIF & RUTE (SUPER_ADMIN) ==================== -->
       <section id="section-routes" class="hidden">
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
-          <input type="text" id="filter-route-search" oninput="renderRoutesTable()" placeholder="Cari Kode Customer, Origin, Tujuan, Project..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-72" />
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="filter-route-search" oninput="renderRoutesTable()" placeholder="Cari Kode Customer, Origin, Tujuan, Project..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-72" />
+            <button type="button" onclick="resetFilterAndRefresh()" class="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+              ↻ Reset Filter & Refresh
+            </button>
+          </div>
           <button onclick="openRouteModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold">+ Tambah Rute & Tarif</button>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -301,7 +317,12 @@
       <!-- ==================== TAB 4: MASTER ARMADA (SUPER_ADMIN) ==================== -->
       <section id="section-fleets" class="hidden">
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
-          <input type="text" id="filter-fleet-search" oninput="renderFleetsTable()" placeholder="Cari Nopol, Jenis Armada, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-72" />
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="filter-fleet-search" oninput="renderFleetsTable()" placeholder="Cari Nopol, Jenis Armada, Driver..." class="px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm w-72" />
+            <button type="button" onclick="resetFilterAndRefresh()" class="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+              ↻ Reset Filter & Refresh
+            </button>
+          </div>
           <button onclick="openFleetModal()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold">+ Tambah Armada</button>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -352,12 +373,12 @@
   <datalist id="datalist-nopol"></datalist>
 
   <!-- ==================== MODAL: INPUT MULTI-SPJ & PARSER PDF REGULAR TRIP NOTE / DN ==================== -->
-  <div id="modal-create-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-5xl w-full p-6 shadow-xl max-h-[92vh] overflow-y-auto">
+  <div id="modal-create-order" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center p-2 sm:p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-[96vw] xl:max-w-7xl w-full p-4 sm:p-6 shadow-xl max-h-[94vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-3">
         <div>
           <h3 class="text-lg font-bold text-slate-900">Input Order Multi-SPJ & Scan PDF Tripnote / DN</h3>
-          <p class="text-xs text-slate-500">Mendukung pembuatan banyak SPJ sekaligus (1 DN = 1 SPJ berurutan) dan pembacaan otomatis PDF Regular Trip Note / DN.</p>
+          <p class="text-xs text-slate-500">Mendukung pembuatan banyak SPJ sekaligus (1 dokumen = 1 SPJ berurutan) dan otomatis tersimpan ke Google Sheet & Web TMS.</p>
         </div>
         <button onclick="closeModal('modal-create-order')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -371,11 +392,11 @@
           </div>
           <div class="text-right text-[11px] text-indigo-800">
             <div>Nomor SPJ Awal: <span id="spj-start-badge" class="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-200">SPJ20260001</span></div>
-            <div class="mt-0.5 text-indigo-600">Setiap baris DN unik otomatis mendapat nomor SPJ berurutan.</div>
+            <div class="mt-0.5 text-indigo-600">Regular Trip Note: Trip Note No → SJ, Route → Rute | Delivery Note: DN No → SJ, Material No → Rute.</div>
           </div>
         </div>
         <div id="pdf-parse-status" class="text-xs text-indigo-700 mt-2 font-medium">
-          Unggah satu atau beberapa PDF Tripnote/DN untuk mengekstraksi No. DN, Tanggal Muat, dan Nama Rute otomatis, atau klik "+ Tambah Baris SPJ" untuk input manual.
+          Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, atau klik "+ Tambah Baris SPJ" untuk input manual.
         </div>
       </div>
 
@@ -385,25 +406,25 @@
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-end">
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nopol</label>
-            <input type="text" id="bulk-new-nopol" list="datalist-nopol" oninput="autofillBulkFleet()" placeholder="B 9xxx XX" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white" />
+            <input type="text" id="bulk-new-nopol" list="datalist-nopol" oninput="autofillBulkFleet()" placeholder="B 9xxx XX" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" />
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Jenis Armada</label>
-            <input type="text" id="bulk-new-armada" placeholder="CDD / Wingbox / Fuso" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white" />
+            <input type="text" id="bulk-new-armada" placeholder="CDD / Wingbox / Fuso" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" />
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nama Driver</label>
-            <input type="text" id="bulk-new-driver" placeholder="Nama Driver" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white" />
+            <input type="text" id="bulk-new-driver" placeholder="Nama Driver" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" />
           </div>
           <div>
-            <button type="button" onclick="applyFleetToAllSpjRows()" class="w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">
+            <button type="button" onclick="applyFleetToAllSpjRows()" class="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">
               Terapkan ke Semua Baris
             </button>
           </div>
         </div>
       </div>
 
-      <!-- TABEL PREVIEW & EDIT MULTI-SPJ -->
+      <!-- TABEL PREVIEW & EDIT MULTI-SPJ (KOLOM LEBAR & TIDAK TERPOTONG) -->
       <form id="form-create-order">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-slate-800">Daftar Antrean SPJ (<span id="multi-spj-count">0</span> SPJ siap disimpan)</span>
@@ -414,19 +435,19 @@
         </div>
 
         <div class="border border-slate-200 rounded-xl overflow-x-auto mb-4">
-          <table class="w-full text-left border-collapse text-xs">
+          <table class="min-w-[1380px] w-full text-left border-collapse text-xs">
             <thead class="bg-slate-100 border-b border-slate-200 text-[11px] uppercase text-slate-600">
               <tr>
-                <th class="py-2.5 px-2.5 w-32">No. SPJ *</th>
-                <th class="py-2.5 px-2.5 w-32">Tgl Muat *</th>
-                <th class="py-2.5 px-2.5 w-44">No. DN / Surat Jalan *</th>
-                <th class="py-2.5 px-2.5 w-48">Nama Rute / Customer *</th>
-                <th class="py-2.5 px-2.5 w-36">Project</th>
-                <th class="py-2.5 px-2.5 w-28">Nopol</th>
-                <th class="py-2.5 px-2.5 w-28">Armada</th>
-                <th class="py-2.5 px-2.5 w-32">Driver</th>
-                <th class="py-2.5 px-2.5 w-20">Kg</th>
-                <th class="py-2.5 px-2 text-center w-8"></th>
+                <th class="py-2.5 px-2.5 min-w-[145px]">No. SPJ *</th>
+                <th class="py-2.5 px-2.5 min-w-[140px]">Tgl Muat *</th>
+                <th class="py-2.5 px-2.5 min-w-[195px]">No. DN / Surat Jalan *</th>
+                <th class="py-2.5 px-2.5 min-w-[230px]">Nama Rute / Customer *</th>
+                <th class="py-2.5 px-2.5 min-w-[175px]">Project</th>
+                <th class="py-2.5 px-2.5 min-w-[125px]">Nopol</th>
+                <th class="py-2.5 px-2.5 min-w-[125px]">Armada</th>
+                <th class="py-2.5 px-2.5 min-w-[155px]">Driver</th>
+                <th class="py-2.5 px-2.5 min-w-[105px]">Kg</th>
+                <th class="py-2.5 px-2 text-center w-10"></th>
               </tr>
             </thead>
             <tbody id="multi-spj-tbody" class="divide-y divide-slate-100 bg-white"></tbody>
@@ -434,7 +455,7 @@
         </div>
 
         <div class="flex items-center justify-between pt-3 border-t">
-          <div class="text-[11px] text-slate-500">Nomor SPJ otomatis diurutkan ulang jika ada baris yang dihapus.</div>
+          <div class="text-[11px] text-slate-500">Setelah disimpan, data langsung masuk ke Google Sheet & tabel Web TMS secara otomatis.</div>
           <div class="flex gap-2">
             <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
             <button type="submit" id="btn-save-order" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm">Simpan Semua SPJ</button>
@@ -762,6 +783,49 @@
       el.classList.remove("flex");
     }
 
+    // --- RESET FILTER & REFRESH DATA (TOMBOL MERAH) ---
+    async function resetFilterAndRefresh() {
+      const topBtn = document.getElementById("btn-top-reset-refresh");
+      if (topBtn) {
+        topBtn.disabled = true;
+        topBtn.textContent = "↻ Memuat Ulang...";
+      }
+
+      // Reset semua input filter & pilihan checkbox
+      const filterIds = [
+        "filter-order-search",
+        "filter-order-project",
+        "filter-order-status",
+        "filter-bill-search",
+        "filter-bill-project",
+        "filter-bill-status",
+        "filter-inv-search",
+        "filter-inv-status",
+        "filter-route-search",
+        "filter-fleet-search"
+      ];
+      filterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+
+      currentOrderPage = 1;
+      selectedOrderRows.clear();
+      selectedBillKeys.clear();
+
+      const checkAllOrders = document.getElementById("check-all-orders");
+      if (checkAllOrders) checkAllOrders.checked = false;
+      const checkAllBills = document.getElementById("check-all-bills");
+      if (checkAllBills) checkAllBills.checked = false;
+
+      await loadDashboardData();
+
+      if (topBtn) {
+        topBtn.disabled = false;
+        topBtn.textContent = "↻ Reset Filter & Refresh Data";
+      }
+    }
+
     // --- LOGIN & LOAD DATA ---
     document.getElementById("login-form").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -803,7 +867,7 @@
 
     async function loadDashboardData(silentError = false) {
       try {
-        const url = `${API_URL}?username=${encodeURIComponent(currentCreds.username)}&password=${encodeURIComponent(currentCreds.password)}`;
+        const url = `${API_URL}?username=${encodeURIComponent(currentCreds.username)}&password=${encodeURIComponent(currentCreds.password)}&_t=${Date.now()}`;
         const res = await fetch(url);
         const json = await res.json();
         if (json.status !== "success") {
@@ -1023,7 +1087,10 @@
       const rows = Array.from(document.querySelectorAll("#multi-spj-tbody tr"));
       rows.forEach((tr, idx) => {
         const spjInput = tr.querySelector(".row-spj");
-        if (spjInput) spjInput.value = incrementSpjCode(baseSpj, idx);
+        if (spjInput) {
+          spjInput.value = incrementSpjCode(baseSpj, idx);
+          spjInput.title = spjInput.value;
+        }
       });
       document.getElementById("multi-spj-count").textContent = rows.length;
     }
@@ -1069,7 +1136,7 @@
       const statusEl = document.getElementById("pdf-parse-status");
       statusEl.textContent = `Membaca ${files.length} file PDF (Regular Trip Note / Delivery Note)...`;
 
-      const uniqueDnMap = new Map();
+      const parsedTrips = [];
       const todayIso = new Date().toISOString().split("T")[0];
 
       for (const file of files) {
@@ -1077,8 +1144,8 @@
           const buf = await file.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 
-          let fileAllText = "";
-          const pageTexts = [];
+          let fullText = "";
+          const pageLinesList = [];
 
           for (let p = 1; p <= pdf.numPages; p++) {
             const page = await pdf.getPage(p);
@@ -1090,78 +1157,159 @@
               linesMap[y].push({ x: it.transform[4], str: it.str });
             });
             const sortedYs = Object.keys(linesMap).map(Number).sort((a, b) => b - a);
-            const pText = sortedYs
-              .map(y => linesMap[y].sort((a, b) => a.x - b.x).map(i => i.str).join(" "))
-              .join("\n");
-
-            pageTexts.push(pText);
-            fileAllText += "\n" + pText;
+            const sortedLines = sortedYs.map(y =>
+              linesMap[y].sort((a, b) => a.x - b.x).map(i => i.str).join(" ").trim()
+            );
+            pageLinesList.push(sortedLines);
+            fullText += "\n" + sortedLines.join("\n");
           }
 
-          const fileDate = parseDateToIso(fileAllText) || todayIso;
-          const fileRoute = matchRouteFromText(fileAllText);
+          const isDeliveryNote = /\bDelivery\s*Note\b/i.test(fullText) && /\bMaterial\s*No\b/i.test(fullText);
 
-          pageTexts.forEach(pText => {
-            const pageDate = parseDateToIso(pText) || fileDate;
-            const pageRoute = matchRouteFromText(pText) || fileRoute;
-            const lines = pText.split("\n");
+          if (isDeliveryNote) {
+            // ================= FORMAT 2: DELIVERY NOTE (ADM) =================
+            // 1. DN No ("DN No : SO292611000157") -> No. Surat Jalan
+            let dnNo = "";
+            const dnMatch = fullText.match(/\bDN\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
+            if (dnMatch && dnMatch[1]) {
+              dnNo = dnMatch[1].trim().toUpperCase();
+            } else {
+              const topDn = fullText.slice(0, 700).match(/\b(SO\d{8,20}|DN\d{8,20})\b/i);
+              if (topDn) dnNo = topDn[1].toUpperCase();
+            }
 
-            lines.forEach(line => {
-              const dnMatches = line.match(/\b(?:DN[A-Z0-9\-]{6,22}|SMO[A-Z0-9\-]{5,20}|SO[0-9\-]{6,20})\b/gi) || [];
-              if (!dnMatches.length) return;
+            // 2. Delivery Date (tanggal di bawah blok DELIVERY) -> Tanggal Muat
+            let tglMuatIso = "";
+            const delivBlockMatch = fullText.match(/\bDELIVERY\b[\s\S]{0,160}?\bDate\s*[:\-]?\s*([0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d)/i);
+            if (delivBlockMatch && delivBlockMatch[1]) {
+              tglMuatIso = parseDateToIso(delivBlockMatch[1]);
+            }
+            if (!tglMuatIso) {
+              const allDates = fullText.match(/\b[0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d\b/g) || [];
+              if (allDates.length >= 2) tglMuatIso = parseDateToIso(allDates[1]);
+              else if (allDates.length === 1) tglMuatIso = parseDateToIso(allDates[0]);
+            }
+            if (!tglMuatIso) tglMuatIso = todayIso;
 
-              const lineDate = parseDateToIso(line) || pageDate;
-              const lineRoute = matchRouteFromText(line) || pageRoute;
-
-              dnMatches.forEach(rawDn => {
-                const dnNo = rawDn.toUpperCase().trim();
-                if (!uniqueDnMap.has(dnNo)) {
-                  uniqueDnMap.set(dnNo, {
-                    no_surat_jalan: dnNo,
-                    tgl_muat: lineDate,
-                    customer: lineRoute ? lineRoute.customer : "",
-                    project: lineRoute ? lineRoute.project : "",
-                    asal: lineRoute && lineRoute.origin !== "NONE" ? lineRoute.origin : "",
-                    tujuan: lineRoute && lineRoute.destination !== "NONE TUJUAN" ? lineRoute.destination : "",
-                    jenis_armada: lineRoute && lineRoute.vehicle_type !== "NONE ARMADA" ? lineRoute.vehicle_type : "",
-                    kilogram: ""
-                  });
-                } else {
-                  const existing = uniqueDnMap.get(dnNo);
-                  if (!existing.customer && lineRoute) {
-                    existing.customer = lineRoute.customer;
-                    existing.project = lineRoute.project;
-                    existing.asal = lineRoute.origin !== "NONE" ? lineRoute.origin : existing.asal;
-                    existing.tujuan = lineRoute.destination !== "NONE TUJUAN" ? lineRoute.destination : existing.tujuan;
-                  }
-                  if (existing.tgl_muat === todayIso && lineDate !== todayIso) {
-                    existing.tgl_muat = lineDate;
-                  }
+            // 3. Material No ("M2KBKCP") -> Rute / Customer
+            const materialsFound = [];
+            pageLinesList.forEach(lines => {
+              let inTable = false;
+              lines.forEach(line => {
+                if (/\bMaterial\s*No\b/i.test(line)) {
+                  inTable = true;
+                  return;
+                }
+                if (!inTable) return;
+                const rowMatch = line.match(/^\d+\s+([A-Z0-9\-\\\/]{4,20})\b(.*)$/i);
+                if (rowMatch && rowMatch[1]) {
+                  materialsFound.push(rowMatch[1].trim().toUpperCase());
                 }
               });
             });
-          });
+
+            if (materialsFound.length === 0) {
+              const fallbackMat = fullText.match(/Material\s*Name[\s\S]{0,120}?\b1\s+([A-Z0-9\-\\\/]{4,20})\b/i);
+              if (fallbackMat && fallbackMat[1]) {
+                materialsFound.push(fallbackMat[1].trim().toUpperCase());
+              }
+            }
+
+            const routeList = materialsFound.length > 0 ? materialsFound : [""];
+
+            routeList.forEach(matRoute => {
+              let matchedMaster = null;
+              if (matRoute) {
+                matchedMaster = appState.routes.find(r => (r.customer || "").trim().toUpperCase() === matRoute)
+                  || appState.routes.find(r => (r.customer || "").trim().toUpperCase().includes(matRoute))
+                  || matchRouteFromText(matRoute);
+              }
+
+              parsedTrips.push({
+                no_surat_jalan: dnNo,
+                tgl_muat: tglMuatIso,
+                customer: matRoute || (matchedMaster ? matchedMaster.customer : ""),
+                project: matchedMaster ? matchedMaster.project : "",
+                asal: matchedMaster && matchedMaster.origin !== "NONE" ? matchedMaster.origin : "",
+                tujuan: matchedMaster && matchedMaster.destination !== "NONE TUJUAN" ? matchedMaster.destination : "",
+                jenis_armada: matchedMaster && matchedMaster.vehicle_type !== "NONE ARMADA" ? matchedMaster.vehicle_type : "",
+                kilogram: ""
+              });
+            });
+
+          } else {
+            // ================= FORMAT 1: REGULAR TRIP NOTE =================
+            // 1. Trip Note No ("Trip Note No : DN56261100009245") -> No. Surat Jalan
+            let tripNoteNo = "";
+            const tnMatch = fullText.match(/Trip\s*Note\s*No\s*[:\-]?\s*([A-Z0-9\-]+)/i);
+            if (tnMatch && tnMatch[1]) {
+              tripNoteNo = tnMatch[1].trim().toUpperCase();
+            } else {
+              const topSection = fullText.slice(0, 700);
+              const topDnMatch = topSection.match(/\b(DN\d{10,20})\b/i);
+              if (topDnMatch) tripNoteNo = topDnMatch[1].toUpperCase();
+            }
+
+            // 2. Delivery Date ("Delivery Date : 01-Dec-2026 1:30:00") -> Tanggal Muat
+            let tglMuatIso = "";
+            const ddMatch = fullText.match(/Delivery\s*Date\s*[:\-]?\s*([0-9]{1,2}[-\/\.\s][A-Za-z0-9]{2,9}[-\/\.\s]202\d)/i);
+            if (ddMatch && ddMatch[1]) {
+              tglMuatIso = parseDateToIso(ddMatch[1]);
+            }
+            if (!tglMuatIso) {
+              tglMuatIso = parseDateToIso(fullText.slice(0, 800)) || todayIso;
+            }
+
+            // 3. Route ("Route : MR5CE7-K1\3") -> Rute / Customer
+            let routeCode = "";
+            const routeMatch = fullText.match(/\bRoute\s*[:\-]?\s*([^\s\r\n]+)/i);
+            if (routeMatch && routeMatch[1]) {
+              routeCode = routeMatch[1].trim().toUpperCase();
+            }
+
+            let matchedMaster = null;
+            if (routeCode) {
+              matchedMaster = appState.routes.find(r => (r.customer || "").trim().toUpperCase() === routeCode)
+                || appState.routes.find(r => (r.customer || "").trim().toUpperCase().includes(routeCode))
+                || matchRouteFromText(routeCode);
+            }
+            if (!matchedMaster) {
+              matchedMaster = matchRouteFromText(fullText.slice(0, 900));
+            }
+
+            const finalCustomer = routeCode || (matchedMaster ? matchedMaster.customer : "");
+
+            if (tripNoteNo || finalCustomer) {
+              parsedTrips.push({
+                no_surat_jalan: tripNoteNo,
+                tgl_muat: tglMuatIso,
+                customer: finalCustomer,
+                project: matchedMaster ? matchedMaster.project : "",
+                asal: matchedMaster && matchedMaster.origin !== "NONE" ? matchedMaster.origin : "",
+                tujuan: matchedMaster && matchedMaster.destination !== "NONE TUJUAN" ? matchedMaster.destination : "",
+                jenis_armada: matchedMaster && matchedMaster.vehicle_type !== "NONE ARMADA" ? matchedMaster.vehicle_type : "",
+                kilogram: ""
+              });
+            }
+          }
         } catch (err) {
           console.error("Gagal membaca PDF:", file.name, err);
         }
       }
 
-      const detectedList = Array.from(uniqueDnMap.values());
       const tbody = document.getElementById("multi-spj-tbody");
-
-      if (tbody.children.length === 1 && !tbody.querySelector(".row-dn").value.trim()) {
+      if (tbody.children.length === 1 && !tbody.querySelector(".row-dn").value.trim() && !tbody.querySelector(".row-cust").value.trim()) {
         tbody.innerHTML = "";
       }
 
-      detectedList.forEach(item => {
-        const existingDns = Array.from(document.querySelectorAll(".row-dn")).map(i => i.value.trim().toUpperCase());
-        if (!existingDns.includes(item.no_surat_jalan)) {
-          addMultiSpjRow(item);
-        }
+      let addedCount = 0;
+      parsedTrips.forEach(item => {
+        addMultiSpjRow(item);
+        addedCount++;
       });
 
       reindexMultiSpjNumbers();
-      statusEl.textContent = `Selesai memindai ${files.length} PDF: ${detectedList.length} DN unik ditemukan dan dibuatkan masing-masing 1 nomor SPJ.`;
+      statusEl.textContent = `Selesai memindai ${files.length} file PDF: ${addedCount} baris SPJ siap diperiksa & disimpan.`;
     }
 
     function addMultiSpjRow(preset = {}) {
@@ -1174,20 +1322,20 @@
       const tr = document.createElement("tr");
       tr.className = "hover:bg-slate-50";
       tr.innerHTML = `
-        <td class="p-1.5"><input type="text" value="${preset.no_spj || ""}" required class="row-spj w-full px-2 py-1.5 rounded border border-slate-300 font-mono text-xs bg-slate-50 font-bold" /></td>
-        <td class="p-1.5"><input type="date" value="${preset.tgl_muat || todayIso}" required class="row-tgl w-full px-2 py-1.5 rounded border border-slate-300 text-xs" /></td>
-        <td class="p-1.5"><input type="text" value="${preset.no_surat_jalan || ""}" placeholder="No. DN / SJ *" required class="row-dn w-full px-2 py-1.5 rounded border border-slate-300 font-mono text-xs" /></td>
-        <td class="p-1.5">
-          <input type="text" value="${preset.customer || ""}" list="datalist-customers" oninput="onRowCustomerChange(this)" placeholder="Nama Rute *" required class="row-cust w-full px-2 py-1.5 rounded border border-slate-300 text-xs" />
+        <td class="p-2"><input type="text" value="${preset.no_spj || ""}" oninput="this.title=this.value" title="${preset.no_spj || ""}" required class="row-spj w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs bg-slate-50 font-bold text-slate-900" /></td>
+        <td class="p-2"><input type="date" value="${preset.tgl_muat || todayIso}" required class="row-tgl w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2"><input type="text" value="${preset.no_surat_jalan || ""}" oninput="this.title=this.value" title="${preset.no_surat_jalan || ""}" placeholder="No. DN / SJ *" required class="row-dn w-full px-2.5 py-2 rounded-lg border border-slate-300 font-mono text-xs" /></td>
+        <td class="p-2">
+          <input type="text" value="${preset.customer || ""}" list="datalist-customers" oninput="this.title=this.value; onRowCustomerChange(this)" title="${preset.customer || ""}" placeholder="Nama Rute *" required class="row-cust w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" />
           <input type="hidden" class="row-asal" value="${preset.asal || ""}" />
           <input type="hidden" class="row-tujuan" value="${preset.tujuan || ""}" />
         </td>
-        <td class="p-1.5"><input type="text" value="${preset.project || ""}" readonly placeholder="Auto" class="row-proj w-full px-2 py-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] text-indigo-700 font-semibold" /></td>
-        <td class="p-1.5"><input type="text" value="${preset.nopol || bulkNopol}" list="datalist-nopol" oninput="onRowNopolChange(this)" placeholder="Nopol" class="row-nopol w-full px-2 py-1.5 rounded border border-slate-300 text-xs" /></td>
-        <td class="p-1.5"><input type="text" value="${preset.jenis_armada || bulkArmada}" placeholder="Armada" class="row-armada w-full px-2 py-1.5 rounded border border-slate-300 text-xs" /></td>
-        <td class="p-1.5"><input type="text" value="${preset.nama_driver || bulkDriver}" placeholder="Driver" class="row-driver w-full px-2 py-1.5 rounded border border-slate-300 text-xs" /></td>
-        <td class="p-1.5"><input type="number" value="${preset.kilogram || ""}" placeholder="Kg" class="row-kg w-full px-2 py-1.5 rounded border border-slate-300 text-xs" /></td>
-        <td class="p-1.5 text-center"><button type="button" onclick="removeMultiSpjRow(this)" class="text-rose-500 hover:text-rose-700 font-bold px-1">✕</button></td>
+        <td class="p-2"><input type="text" value="${preset.project || ""}" title="${preset.project || ""}" readonly placeholder="Auto" class="row-proj w-full px-2.5 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs text-indigo-700 font-semibold" /></td>
+        <td class="p-2"><input type="text" value="${preset.nopol || bulkNopol}" list="datalist-nopol" oninput="this.title=this.value; onRowNopolChange(this)" placeholder="Nopol" class="row-nopol w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2"><input type="text" value="${preset.jenis_armada || bulkArmada}" oninput="this.title=this.value" placeholder="Armada" class="row-armada w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2"><input type="text" value="${preset.nama_driver || bulkDriver}" oninput="this.title=this.value" placeholder="Driver" class="row-driver w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs" /></td>
+        <td class="p-2"><input type="number" value="${preset.kilogram || ""}" oninput="this.title=this.value" placeholder="Kg" class="row-kg w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs text-right font-mono" /></td>
+        <td class="p-2 text-center"><button type="button" onclick="removeMultiSpjRow(this)" class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-1">✕</button></td>
       `;
       tbody.appendChild(tr);
       reindexMultiSpjNumbers();
@@ -1209,6 +1357,7 @@
       const match = appState.routes.find(r => r.customer.toLowerCase() === val);
       if (!match) return;
       tr.querySelector(".row-proj").value = match.project || "";
+      tr.querySelector(".row-proj").title = match.project || "";
       tr.querySelector(".row-asal").value = match.origin && match.origin !== "NONE" ? match.origin : "";
       tr.querySelector(".row-tujuan").value = match.destination && match.destination !== "NONE TUJUAN" ? match.destination : "";
       if (match.vehicle_type && match.vehicle_type !== "NONE ARMADA" && !tr.querySelector(".row-armada").value) {
@@ -1246,7 +1395,7 @@
 
     function openCreateOrderModal() {
       document.getElementById("pdf-tripnote-upload").value = "";
-      document.getElementById("pdf-parse-status").textContent = "Unggah satu atau beberapa PDF Tripnote/DN untuk mengekstraksi No. DN, Tanggal Muat, dan Nama Rute otomatis, atau klik '+ Tambah Baris SPJ' untuk input manual.";
+      document.getElementById("pdf-parse-status").textContent = "Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, atau klik '+ Tambah Baris SPJ' untuk input manual.";
       document.getElementById("bulk-new-nopol").value = "";
       document.getElementById("bulk-new-armada").value = "";
       document.getElementById("bulk-new-driver").value = "";
@@ -1279,7 +1428,7 @@
 
       const btn = document.getElementById("btn-save-order");
       btn.disabled = true;
-      btn.textContent = `Menyimpan ${ordersPayload.length} SPJ...`;
+      btn.textContent = `Menyimpan ${ordersPayload.length} SPJ ke Google Sheet...`;
 
       const res = await postApi("CREATE_ORDER", { orders: ordersPayload });
 
