@@ -27,11 +27,18 @@
       <form id="login-form" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username</label>
-          <input type="text" id="login-username" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Masukkan username" />
+          <input type="text" id="login-username" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Masukkan username (contoh: arghi)" />
         </div>
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password</label>
           <input type="password" id="login-password" required class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Masukkan password" />
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold uppercase text-slate-600">URL Web App Apps Script (/exec)</label>
+            <span class="text-[10px] text-indigo-600 font-semibold">Tersimpan otomatis</span>
+          </div>
+          <input type="url" id="login-api-url" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://script.google.com/macros/s/.../exec" />
         </div>
         <div id="login-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2.5"></div>
         <button type="submit" id="btn-login" class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition">Masuk Sistem</button>
@@ -718,8 +725,15 @@
   <div id="print-spj-area" class="hidden p-8 bg-white text-black"></div>
 
   <script>
-    // https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec
-    const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyQoUH6qQvhEdhWA2xm9oQABxLjBlr_gltx80W9eIuPaOguFKLuZL7x7IiVZb97AfbR/exec";
+    // OPSIONAL: Tempel URL Web App (/exec) Apps Script Anda di dalam tanda kutip di bawah ini,
+    // atau isi langsung lewat kolom di layar Login (otomatis tersimpan di localStorage browser).
+    const DEFAULT_API_URL = "";
+
+    const STORAGE_KEY_API = "tms_gsi_api_url_v1";
+    let activeApiUrl = localStorage.getItem(STORAGE_KEY_API) || DEFAULT_API_URL;
+    if (activeApiUrl) {
+      document.getElementById("login-api-url").value = activeApiUrl;
+    }
 
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -763,23 +777,33 @@
       e.preventDefault();
       const username = document.getElementById("login-username").value.trim();
       const password = document.getElementById("login-password").value.trim();
+      const apiUrlInput = document.getElementById("login-api-url").value.trim();
       const btn = document.getElementById("btn-login");
       const errBox = document.getElementById("login-error");
 
+      if (!apiUrlInput || !apiUrlInput.startsWith("https://script.google.com/")) {
+        errBox.textContent = "Masukkan URL Web App Google Apps Script yang valid (berawalan https://script.google.com/.../exec).";
+        errBox.classList.remove("hidden");
+        return;
+      }
+
+      activeApiUrl = apiUrlInput;
+      localStorage.setItem(STORAGE_KEY_API, activeApiUrl);
+
       btn.disabled = true;
-      btn.textContent = "Memuat data...";
+      btn.textContent = "Menghubungkan ke Google Sheets...";
       errBox.classList.add("hidden");
 
       currentCreds = { username, password };
-      const ok = await loadDashboardData();
+      const result = await loadDashboardData(true);
       btn.disabled = false;
       btn.textContent = "Masuk Sistem";
 
-      if (ok) {
+      if (result.ok) {
         document.getElementById("login-screen").classList.add("hidden");
         document.getElementById("main-app").classList.remove("hidden");
       } else {
-        errBox.textContent = "Login gagal atau koneksi API bermasalah. Periksa username/password.";
+        errBox.textContent = result.message || "Login gagal atau koneksi API bermasalah.";
         errBox.classList.remove("hidden");
       }
     });
@@ -791,14 +815,14 @@
       document.getElementById("login-screen").classList.remove("hidden");
     }
 
-    async function loadDashboardData() {
+    async function loadDashboardData(silentError = false) {
       try {
-        const url = `${DEFAULT_API_URL}?username=${encodeURIComponent(currentCreds.username)}&password=${encodeURIComponent(currentCreds.password)}`;
+        const url = `${activeApiUrl}?username=${encodeURIComponent(currentCreds.username)}&password=${encodeURIComponent(currentCreds.password)}`;
         const res = await fetch(url);
         const json = await res.json();
         if (json.status !== "success") {
-          alert(json.message || "Gagal mengambil data.");
-          return false;
+          if (!silentError) alert(json.message || "Gagal mengambil data.");
+          return { ok: false, message: json.message };
         }
 
         currentUser = json.user;
@@ -835,15 +859,15 @@
           renderFleetsTable();
           renderUsersTable();
         }
-        return true;
+        return { ok: true };
       } catch (err) {
         console.error(err);
-        return false;
+        return { ok: false, message: "Koneksi API gagal. Pastikan URL Web App /exec benar dan deployment disetel 'Anyone'." };
       }
     }
 
     async function postApi(action, data) {
-      const res = await fetch(DEFAULT_API_URL, {
+      const res = await fetch(activeApiUrl, {
         method: "POST",
         body: JSON.stringify({
           username: currentCreds.username,
@@ -1271,34 +1295,16 @@
       btn.disabled = true;
       btn.textContent = `Menyimpan ${ordersPayload.length} SPJ...`;
 
-      let successCount = 0;
-      for (const item of ordersPayload) {
-        const res = await postApi("CREATE_ORDER", {
-          no_spj: item.no_spj,
-          tgl_muat: item.tgl_muat,
-          project: item.project,
-          customer: item.customer,
-          asal: item.asal,
-          tujuan: item.tujuan,
-          nopol: item.nopol,
-          jenis_armada: item.jenis_armada,
-          nama_driver: item.nama_driver,
-          surat_jalan_list: [{ sj_no: item.no_surat_jalan, kilogram: item.kilogram }]
-        });
-        if (res.status === "success") {
-          successCount++;
-        } else {
-          alert(`Gagal menyimpan ${item.no_spj} (${item.no_surat_jalan}): ${res.message}`);
-          break;
-        }
-      }
+      const res = await postApi("CREATE_ORDER", { orders: ordersPayload });
 
       btn.disabled = false;
       btn.textContent = "Simpan Semua SPJ";
 
-      if (successCount > 0) {
+      if (res.status === "success") {
         closeModal("modal-create-order");
         await loadDashboardData();
+      } else {
+        alert(res.message);
       }
     });
 
