@@ -68,6 +68,18 @@
 
     <main class="max-w-7xl mx-auto px-4 py-6">
 
+      <!-- NOTIFIKASI SUKSES HIJAU UTAMA -->
+      <div id="success-toast-banner" class="hidden mb-5 bg-emerald-600 text-white px-4 py-3.5 rounded-xl shadow-lg border border-emerald-500 flex items-center justify-between gap-3 transition-all">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white text-emerald-700 font-extrabold text-sm shrink-0">✓</span>
+          <div>
+            <div class="font-bold text-sm" id="success-toast-title">Berhasil Menyimpan Data!</div>
+            <div class="text-xs text-emerald-100" id="success-toast-desc">-</div>
+          </div>
+        </div>
+        <button type="button" onclick="hideSuccessBanner()" class="text-emerald-100 hover:text-white font-bold text-base px-2">✕</button>
+      </div>
+
       <!-- ==================== TAB 1: MONITORING POD & ORDER ==================== -->
       <section id="section-orders">
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
@@ -428,7 +440,7 @@
       <div class="flex items-center justify-between mb-3">
         <div>
           <h3 class="text-lg font-bold text-slate-900">Input Order & Scan PDF Tripnote / DN</h3>
-          <p class="text-xs text-slate-500">Kolom <b>Nama Rute / Customer</b> dikunci ketat ke <b>Master_Tarif_Rute</b> agar Tarif Jual & Uang Jalan selalu terdeteksi otomatis.</p>
+          <p class="text-xs text-slate-500">Kolom <b>Nama Rute / Customer</b> dikunci ketat ke <b>Master_Tarif</b> agar Tarif Jual & Uang Jalan selalu terdeteksi otomatis.</p>
         </div>
         <button onclick="closeModal('modal-create-order')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -483,6 +495,18 @@
         </div>
       </div>
 
+      <!-- BANNER NOTIFIKASI BERHASIL HIJAU DI DALAM MODAL -->
+      <div id="create-order-success-box" class="hidden mb-3 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-md border border-emerald-500 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white text-emerald-700 font-extrabold text-xs shrink-0">✓</span>
+          <div>
+            <div class="font-bold text-xs sm:text-sm" id="create-success-title">Berhasil Menyimpan Order!</div>
+            <div class="text-[11px] text-emerald-100" id="create-success-desc">-</div>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('create-order-success-box').classList.add('hidden')" class="text-emerald-100 hover:text-white font-bold text-sm px-1.5">✕</button>
+      </div>
+
       <!-- BANNER ERROR VALIDASI RUTE -->
       <div id="create-route-error-box" class="hidden mb-3 bg-rose-50 border border-rose-300 rounded-xl p-3 text-xs text-rose-800"></div>
 
@@ -519,7 +543,7 @@
         <div class="flex items-center justify-between pt-3 border-t">
           <div class="text-[11px] text-slate-500">Pastikan seluruh kolom <b>Nama Rute</b> bertanda hijau (<b class="text-emerald-700">✓ Valid</b>) dengan Tarif & UJ terdeteksi sebelum menyimpan.</div>
           <div class="flex gap-2">
-            <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
+            <button type="button" onclick="closeModal('modal-create-order')" class="px-4 py-2 rounded-lg border text-xs font-semibold text-slate-600 hover:bg-slate-50">Tutup</button>
             <button type="submit" id="btn-save-order" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm">Simpan Semua Order</button>
           </div>
         </div>
@@ -828,6 +852,7 @@
     let selectedOrderRows = new Set();
     let selectedBillKeys = new Set();
     let activeEditItems = [];
+    let successBannerTimer = null;
 
     function formatRupiah(num) {
       return "Rp " + (Number(num) || 0).toLocaleString("id-ID");
@@ -843,6 +868,25 @@
       const el = document.getElementById(id);
       el.classList.add("hidden");
       el.classList.remove("flex");
+    }
+
+    function showSuccessBanner(title, desc) {
+      const banner = document.getElementById("success-toast-banner");
+      if (!banner) return;
+      document.getElementById("success-toast-title").textContent = title;
+      document.getElementById("success-toast-desc").textContent = desc;
+      banner.classList.remove("hidden");
+      banner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+      if (successBannerTimer) clearTimeout(successBannerTimer);
+      successBannerTimer = setTimeout(() => {
+        hideSuccessBanner();
+      }, 7000);
+    }
+
+    function hideSuccessBanner() {
+      const banner = document.getElementById("success-toast-banner");
+      if (banner) banner.classList.add("hidden");
     }
 
     // --- HELPER VALIDASI RUTE MASTER ---
@@ -1319,6 +1363,7 @@
       const files = Array.from(event.target.files || []);
       if (!files.length) return;
 
+      document.getElementById("create-order-success-box").classList.add("hidden");
       const statusEl = document.getElementById("pdf-parse-status");
       const reviewPanel = document.getElementById("pdf-review-panel");
       const reviewBadges = document.getElementById("pdf-review-badges");
@@ -1702,24 +1747,33 @@
       });
     }
 
-    function openCreateOrderModal() {
+    function resetCreateOrderFormFields() {
       document.getElementById("pdf-tripnote-upload").value = "";
       document.getElementById("pdf-parse-status").textContent = "Unggah satu atau beberapa PDF Tripnote/DN untuk ekstraksi otomatis, atau pilih Nama Rute dari daftar validasi pada tabel di bawah.";
       document.getElementById("pdf-review-panel").classList.add("hidden");
       document.getElementById("pdf-duplicate-notes").classList.add("hidden");
       document.getElementById("create-route-error-box").classList.add("hidden");
+
       document.getElementById("bulk-new-nopol").value = "";
       document.getElementById("bulk-new-armada").value = "";
       document.getElementById("bulk-new-driver").value = "";
+
       document.getElementById("multi-spj-tbody").innerHTML = "";
       addMultiSpjRow();
+    }
+
+    function openCreateOrderModal() {
+      document.getElementById("create-order-success-box").classList.add("hidden");
+      resetCreateOrderFormFields();
       openModal("modal-create-order");
     }
 
     document.getElementById("form-create-order").addEventListener("submit", async (e) => {
       e.preventDefault();
       const errBox = document.getElementById("create-route-error-box");
+      const successBox = document.getElementById("create-order-success-box");
       errBox.classList.add("hidden");
+      successBox.classList.add("hidden");
 
       const rows = Array.from(document.querySelectorAll("#multi-spj-tbody tr"));
       if (!rows.length) {
@@ -1781,8 +1835,28 @@
       btn.textContent = "Simpan Semua Order";
 
       if (res.status === "success") {
-        closeModal("modal-create-order");
+        // 1. Refresh data dari Google Sheet agar next_spj dan tabel monitoring terupdate
         await loadDashboardData();
+
+        // 2. Kosongkan seluruh kolom input, file PDF, armada default & siapkan 1 baris kosong baru
+        resetCreateOrderFormFields();
+
+        // 3. Tampilkan notifikasi berhasil berwarna hijau di dalam modal & banner utama
+        const inserted = res.inserted_count ?? ordersPayload.length;
+        const skipped = (res.skipped_duplicates || []).length;
+        const firstSpj = ordersPayload[0]?.no_spj || "";
+        const lastSpj = ordersPayload[ordersPayload.length - 1]?.no_spj || "";
+        const rangeText = inserted > 1 ? `${firstSpj} s/d ${lastSpj}` : firstSpj;
+
+        document.getElementById("create-success-title").textContent = `Berhasil Menyimpan ${inserted} Order SPJ ke Google Sheet!`;
+        document.getElementById("create-success-desc").textContent = `No. Ref: ${rangeText}${skipped > 0 ? ` (${skipped} duplikat dilewati)` : ""} • Form sudah dikosongkan dan siap untuk input berikutnya (${appState.next_spj}).`;
+        successBox.classList.remove("hidden");
+        successBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        showSuccessBanner(
+          `Berhasil Menyimpan ${inserted} Order SPJ ke Google Sheet!`,
+          `No. Ref: ${rangeText}${skipped > 0 ? ` (${skipped} duplikat SJ dilewati otomatis)` : ""} • Data siap diverifikasi pada tabel Monitoring POD.`
+        );
       } else {
         alert(res.message);
       }
@@ -1879,6 +1953,7 @@
       if (res.status === "success") {
         closeModal("modal-edit-order");
         await loadDashboardData();
+        showSuccessBanner("Perubahan Order Berhasil Disimpan!", "Data order dan tarif rute telah diperbarui di Google Sheet.");
       } else {
         alert(res.message);
       }
@@ -1924,15 +1999,18 @@
       btn.textContent = "Menyimpan...";
 
       const isBulk = document.getElementById("pod-is-bulk").value === "1";
+      const newStatus = document.getElementById("pod-status").value;
+      const countUpdated = isBulk ? selectedOrderRows.size : 1;
+
       const res = isBulk
         ? await postApi("BULK_UPDATE_POD", {
             row_numbers: Array.from(selectedOrderRows),
-            status_gr: document.getElementById("pod-status").value,
+            status_gr: newStatus,
             keterangan_issue: document.getElementById("pod-issue").value.trim()
           })
         : await postApi("UPDATE_POD", {
             row_number: Number(document.getElementById("pod-row-number").value),
-            status_gr: document.getElementById("pod-status").value,
+            status_gr: newStatus,
             keterangan_issue: document.getElementById("pod-issue").value.trim()
           });
 
@@ -1942,6 +2020,10 @@
         if (isBulk) selectedOrderRows.clear();
         closeModal("modal-pod");
         await loadDashboardData();
+        showSuccessBanner(
+          `Status POD Berhasil Diperbarui ke ${newStatus}!`,
+          `${countUpdated} item surat jalan telah diperbarui${newStatus === "OK GR" ? " dan otomatis masuk ke Rekap Penagihan." : "."}`
+        );
       } else {
         alert(res.message);
       }
@@ -1975,6 +2057,7 @@
       if (res.status === "success") {
         closeModal("modal-cancel-order");
         await loadDashboardData();
+        showSuccessBanner("Tindakan Order Berhasil Diproses!", "Perubahan telah disimpan dan dicatat ke log audit.");
       } else {
         alert(res.message);
       }
@@ -2108,6 +2191,7 @@
         closeModal("modal-billing-batch");
         await loadDashboardData();
         switchBillingSubTab("invoices");
+        showSuccessBanner("Rekap Penagihan Berhasil Disimpan!", "Data invoice dan faktur pajak telah disinkronkan ke Google Sheet.");
       } else {
         alert(res.message);
       }
@@ -2264,8 +2348,11 @@
         base_rate: Number(document.getElementById("route-rate").value),
         uang_jalan: Number(document.getElementById("route-uj").value)
       });
-      if (res.status === "success") { closeModal("modal-route"); await loadDashboardData(); }
-      else alert(res.message);
+      if (res.status === "success") {
+        closeModal("modal-route");
+        await loadDashboardData();
+        showSuccessBanner("Master Tarif & Rute Disimpan!", "Daftar rute dan tarif terbaru telah aktif.");
+      } else alert(res.message);
     });
 
     function renderFleetsTable() {
@@ -2298,8 +2385,11 @@
         vehicle_type: document.getElementById("fleet-type").value.trim(),
         driver_name: document.getElementById("fleet-driver").value.trim()
       });
-      if (res.status === "success") { closeModal("modal-fleet"); await loadDashboardData(); }
-      else alert(res.message);
+      if (res.status === "success") {
+        closeModal("modal-fleet");
+        await loadDashboardData();
+        showSuccessBanner("Master Armada Disimpan!", "Data armada dan driver berhasil diperbarui.");
+      } else alert(res.message);
     });
 
     function renderUsersTable() {
@@ -2335,8 +2425,11 @@
         role: document.getElementById("user-role").value,
         status: document.getElementById("user-status").value
       });
-      if (res.status === "success") { closeModal("modal-user"); await loadDashboardData(); }
-      else alert(res.message);
+      if (res.status === "success") {
+        closeModal("modal-user");
+        await loadDashboardData();
+        showSuccessBanner("Akun Pengguna Disimpan!", "Perubahan hak akses user telah aktif.");
+      } else alert(res.message);
     });
   </script>
 </body>
